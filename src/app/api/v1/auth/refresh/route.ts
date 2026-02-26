@@ -1,0 +1,40 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { refresh } from '@/server/services/auth.service';
+import { refreshRequestSchema } from '@/server/schemas/auth.schema';
+import { AuthError } from '@/server/middleware/auth.middleware';
+
+// FEAT-0: Token refresh endpoint
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+  const parsed = refreshRequestSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: '입력값이 올바르지 않습니다',
+          details: parsed.error.issues.map((i) => ({
+            field: String(i.path[0]),
+            message: i.message,
+          })),
+        },
+      },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const result = await refresh(parsed.data.refreshToken);
+    return NextResponse.json({ data: result });
+  } catch (e) {
+    if (e instanceof AuthError) {
+      return NextResponse.json(
+        { error: { code: 'AUTH_ERROR', message: e.message } },
+        { status: e.statusCode },
+      );
+    }
+    throw e;
+  }
+}

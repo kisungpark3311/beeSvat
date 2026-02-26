@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs wc:*)",
+      "Bash(rm:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(npx vitest:*)",
+      "Bash(timeout 15 npx next:*)",
+      "Bash(docker compose:*)",
+      "Bash(export:*)",
+      "Bash(cp:*)",
+      "Bash(curl:*)",
+      "Bash(npx next:*)",
+      "Bash(node:*)",
+      "Bash(tasklist:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

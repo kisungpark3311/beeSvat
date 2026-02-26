@@ -1,0 +1,27 @@
+# 테스트 환경용 Docker Compose
+# 개발 DB(5432)와 충돌하지 않도록 5433 포트 사용
+
+version: "3.8"
+
+services:
+  db-test:
+    image: postgres:15
+    container_name: beesvat-db-test
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: beesvat
+      POSTGRES_PASSWORD: beesvat_test
+      POSTGRES_DB: beesvat_test
+    volumes:
+      - pgdata_test:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U beesvat -d beesvat_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  pgdata_test:
