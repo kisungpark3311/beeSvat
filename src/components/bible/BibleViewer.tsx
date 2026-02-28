@@ -21,9 +21,9 @@ export default function BibleViewer({ verses, book, chapter }: BibleViewerProps)
       <h3 className="mb-md text-lg font-semibold text-text-primary">
         {book} {chapter}장
       </h3>
-      <div className="font-serif text-lg leading-[2.0] text-text-primary">
+      <div className="font-serif text-lg leading-[2.0] text-text-primary break-keep">
         {verses.map((verse) => (
-          <span key={verse.verse} className="inline">
+          <span key={verse.verse}>
             <VerseNumber number={verse.verse} />
             {verse.text}{' '}
           </span>

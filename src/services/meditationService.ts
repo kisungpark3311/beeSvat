@@ -14,21 +14,29 @@ const api = axios.create({
 });
 
 export async function createMeditation(
-  accessToken: string,
+  accessToken: string | null,
   data: { analysisId?: string; content: string },
 ) {
-  const { data: res } = await api.post<{ data: MeditationDetail }>('/', data, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  const headers: Record<string, string> = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+  const { data: res } = await api.post<{ data: MeditationDetail }>('/', data, { headers });
   return res.data;
 }
 
-export async function listMeditations(accessToken: string, page?: number, limit?: number) {
-  const { data: res } = await api.get<{ data: MeditationListItem[]; meta: PaginationMeta }>('/', {
-    headers: { Authorization: `Bearer ${accessToken}` },
+export async function listMeditations(accessToken: string | null, page?: number, limit?: number) {
+  const headers: Record<string, string> = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+  const { data: res } = await api.get<{
+    data: { items: MeditationListItem[]; meta: PaginationMeta };
+  }>('/', {
+    headers,
     params: { page, limit },
   });
-  return res;
+  return { data: res.data.items, meta: res.data.meta };
 }
 
 export async function getMeditation(accessToken: string, id: string) {

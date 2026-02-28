@@ -30,12 +30,16 @@ export async function createMeditation(userId: string, data: CreateMeditationReq
   };
 }
 
-export async function listMeditations(userId: string, query: { page: number; limit: number }) {
+export async function listMeditations(
+  userId: string | null,
+  query: { page: number; limit: number },
+) {
   const { page, limit } = query;
+  const where = userId ? { userId } : { userId: null as string | null };
 
   const [items, total] = await Promise.all([
     prisma.meditation.findMany({
-      where: { userId },
+      where,
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
@@ -48,7 +52,7 @@ export async function listMeditations(userId: string, query: { page: number; lim
         createdAt: true,
       },
     }),
-    prisma.meditation.count({ where: { userId } }),
+    prisma.meditation.count({ where }),
   ]);
 
   const truncatedItems = items.map((item) => ({

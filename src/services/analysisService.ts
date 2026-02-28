@@ -15,26 +15,33 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-export async function createAnalysis(accessToken: string, data: CreateAnalysisRequest) {
-  const { data: res } = await api.post<{ data: CreateAnalysisResponse }>('/', data, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+export async function createAnalysis(accessToken: string | null, data: CreateAnalysisRequest) {
+  const headers: Record<string, string> = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+  const { data: res } = await api.post<{ data: CreateAnalysisResponse }>('/', data, { headers });
   return res.data;
 }
 
-export async function getAnalysis(accessToken: string, id: string) {
-  const { data: res } = await api.get<{ data: AnalysisDetail }>(`/${id}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+export async function getAnalysis(accessToken: string | null, id: string) {
+  const headers: Record<string, string> = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+  const { data: res } = await api.get<{ data: AnalysisDetail }>(`/${id}`, { headers });
   return res.data;
 }
 
-export async function listAnalyses(accessToken: string, page?: number, limit?: number) {
-  const { data: res } = await api.get<{ data: AnalysisListItem[]; meta: PaginationMeta }>('/', {
-    headers: { Authorization: `Bearer ${accessToken}` },
-    params: { page, limit },
-  });
-  return res;
+export async function listAnalyses(accessToken: string | null, page?: number, limit?: number) {
+  const headers: Record<string, string> = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+  const { data: res } = await api.get<{
+    data: { items: AnalysisListItem[]; meta: PaginationMeta };
+  }>('/', { headers, params: { page, limit } });
+  return res.data;
 }
 
 export async function rateAnalysis(accessToken: string, id: string, rating: number) {

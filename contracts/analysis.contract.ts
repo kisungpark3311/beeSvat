@@ -45,6 +45,10 @@ export interface MainVerb {
   transliteration?: string; // 음역
   parsing?: VerbParsing; // BibleWorks 파싱 테이블
   theologicalImplication?: string; // 신학적 함의
+  // v2 확장 필드
+  contextualMeaning?: string; // 문맥적 의미 (이 동사가 이 절에서 하는 역할)
+  modernKorean?: string; // 현대 한글 해석 (자연스러운 우리말 번역)
+  verseReference?: string; // 해당 절 참조 (e.g., "18:27")
 }
 
 export interface Modifier {
@@ -65,6 +69,7 @@ export interface AnalysisStructure {
   original: string;
   parsed: string[];
   hierarchy: Record<string, unknown>;
+  structureDiagram?: string; // v2: ASCII 본문 구조도
 }
 
 // 관찰/해석/적용 확장 (svat-skill 8단계 프로세스)
@@ -85,6 +90,27 @@ export interface AnalysisApplication {
   principles: string[]; // 시대 초월적 영적 원리
   personalApplication: string; // 개인 신앙 적용
   pastoralPoints: string[]; // 목회/설교 포인트 (3개)
+  // v2 확장 필드
+  practicePlan?: {
+    weekly?: string[]; // 이번 주 실천
+    monthly?: string; // 이번 달 영적 과제
+    longTerm?: string; // 장기적 성장 목표
+  };
+  communityMessage?: string; // 교회공동체에 대한 메시지
+}
+
+// v2: 신학적 성찰 (svat-skill 7단계)
+export interface AnalysisTheologicalReflection {
+  coreInsight: string; // 핵심 통찰 (한 문단)
+  personalMessage: string; // 저에게 주는 말씀
+}
+
+// v2: 기도와 헌신 (svat-skill 8단계)
+export interface AnalysisPrayerDedication {
+  thanksgiving: string; // 감사
+  confession: string; // 고백
+  intercession: string; // 중보기도
+  dedication: string; // 헌신 서약
 }
 
 // === Response Types ===
@@ -105,6 +131,9 @@ export interface AnalysisResultData {
   observation?: AnalysisObservation;
   interpretation?: AnalysisInterpretation;
   application?: AnalysisApplication;
+  // v2 확장 필드
+  theologicalReflection?: AnalysisTheologicalReflection;
+  prayerDedication?: AnalysisPrayerDedication;
   aiModel: string;
   processingTimeMs: number;
   createdAt: string;

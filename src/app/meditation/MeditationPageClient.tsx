@@ -17,10 +17,8 @@ export default function MeditationPageClient() {
 
   const fetchMeditations = useCallback(
     (page = 1) => {
-      if (!accessToken) return;
-
       setLoading(true);
-      listMeditations(accessToken, page)
+      listMeditations(accessToken ?? null, page)
         .then((res) => {
           setMeditations(res.data, res.meta);
         })
@@ -37,14 +35,6 @@ export default function MeditationPageClient() {
   useEffect(() => {
     fetchMeditations();
   }, [fetchMeditations]);
-
-  if (!accessToken) {
-    return (
-      <div className="flex items-center justify-center py-xl">
-        <p className="text-text-secondary">로그인이 필요합니다</p>
-      </div>
-    );
-  }
 
   if (error) {
     return (

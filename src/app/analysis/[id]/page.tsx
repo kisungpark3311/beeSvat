@@ -28,16 +28,16 @@ export default function AnalysisDetailPage() {
   } = useAnalysisStream();
 
   useEffect(() => {
-    if (!accessToken || !id) return;
+    if (!id) return;
 
     setLoading(true);
-    getAnalysis(accessToken, id)
+    getAnalysis(accessToken ?? null, id)
       .then((data) => {
         setCurrentAnalysis(data);
 
         // If analysis is still pending, auto-start SSE streaming
         if (data.status === 'pending') {
-          startStream(id, accessToken);
+          startStream(id, accessToken ?? null);
         }
       })
       .catch((err: Error) => {
@@ -78,14 +78,6 @@ export default function AnalysisDetailPage() {
     },
     [accessToken, id, currentAnalysis, setCurrentAnalysis],
   );
-
-  if (!accessToken) {
-    return (
-      <div className="flex items-center justify-center py-xl">
-        <p className="text-text-secondary">로그인이 필요합니다</p>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (

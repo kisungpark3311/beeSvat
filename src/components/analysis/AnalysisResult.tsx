@@ -2,12 +2,25 @@
 
 // FEAT-2: Display full analysis result with highlighted syntax elements
 import { useState, useCallback } from 'react';
-import type { AnalysisDetail } from '@contracts/analysis.contract';
+import type {
+  AnalysisDetail,
+  AnalysisObservation,
+  AnalysisInterpretation,
+  AnalysisApplication,
+  AnalysisTheologicalReflection,
+  AnalysisPrayerDedication,
+} from '@contracts/analysis.contract';
 import VerbHighlight from '@/components/analysis/VerbHighlight';
 import ModifierHighlight from '@/components/analysis/ModifierHighlight';
 import ExplanationPanel from '@/components/analysis/ExplanationPanel';
 import SyntaxLegend from '@/components/analysis/SyntaxLegend';
 import VerbDetailPanel from '@/components/analysis/VerbDetailPanel';
+import VerbParsingSection from '@/components/analysis/VerbParsingSection';
+import ObservationPanel from '@/components/analysis/ObservationPanel';
+import InterpretationPanel from '@/components/analysis/InterpretationPanel';
+import ApplicationPanel from '@/components/analysis/ApplicationPanel';
+import TheologicalReflectionPanel from '@/components/analysis/TheologicalReflectionPanel';
+import PrayerDedicationPanel from '@/components/analysis/PrayerDedicationPanel';
 import Card from '@/components/ui/Card';
 
 interface SelectedVerb {
@@ -122,6 +135,38 @@ export default function AnalysisResult({ analysis }: AnalysisResultProps) {
 
       {/* Explanation */}
       <ExplanationPanel explanation={result.explanation} />
+
+      {/* BibleWorks-style Verb Parsing */}
+      <VerbParsingSection mainVerbs={mainVerbs} />
+
+      {/* Structure Diagram */}
+      {result.structure.structureDiagram && (
+        <Card>
+          <h3 className="mb-sm text-sm font-semibold text-text-secondary">본문 구조도</h3>
+          <pre className="text-xs leading-relaxed text-text-primary overflow-x-auto whitespace-pre font-mono bg-background rounded p-sm">
+            {result.structure.structureDiagram}
+          </pre>
+        </Card>
+      )}
+
+      {/* v2: Deep Analysis Panels */}
+      {result.observation && (
+        <ObservationPanel observation={result.observation as AnalysisObservation} />
+      )}
+      {result.interpretation && (
+        <InterpretationPanel interpretation={result.interpretation as AnalysisInterpretation} />
+      )}
+      {result.application && (
+        <ApplicationPanel application={result.application as AnalysisApplication} />
+      )}
+      {result.theologicalReflection && (
+        <TheologicalReflectionPanel
+          reflection={result.theologicalReflection as AnalysisTheologicalReflection}
+        />
+      )}
+      {result.prayerDedication && (
+        <PrayerDedicationPanel prayer={result.prayerDedication as AnalysisPrayerDedication} />
+      )}
 
       {/* Processing info */}
       <p className="text-xs text-text-secondary text-right">

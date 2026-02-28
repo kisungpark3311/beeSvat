@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { authenticateRequest, AuthError } from '@/server/middleware/auth.middleware';
+import { optionalAuthenticateRequest, AuthError } from '@/server/middleware/auth.middleware';
 import { createMeditation, listMeditations } from '@/server/services/meditation.service';
 import {
   createMeditationRequestSchema,
@@ -10,7 +10,7 @@ import {
 // FEAT-3: Create meditation endpoint
 export async function POST(request: NextRequest) {
   try {
-    const userId = await authenticateRequest(request);
+    const userId = await optionalAuthenticateRequest(request);
     const body = await request.json();
     const parsed = createMeditationRequestSchema.safeParse(body);
 
@@ -46,11 +46,11 @@ export async function POST(request: NextRequest) {
 // FEAT-3: List meditations endpoint
 export async function GET(request: NextRequest) {
   try {
-    const userId = await authenticateRequest(request);
+    const userId = await optionalAuthenticateRequest(request);
     const searchParams = request.nextUrl.searchParams;
     const parsed = meditationQuerySchema.safeParse({
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
+      page: searchParams.get('page') ?? undefined,
+      limit: searchParams.get('limit') ?? undefined,
     });
 
     if (!parsed.success) {

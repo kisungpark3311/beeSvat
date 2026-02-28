@@ -13,12 +13,10 @@ export default function AnalysisPageClient() {
   const { analyses, isLoading, error, setAnalyses, setLoading, setError } = useAnalysisStore();
 
   useEffect(() => {
-    if (!accessToken) return;
-
     setLoading(true);
-    listAnalyses(accessToken)
+    listAnalyses(accessToken ?? null)
       .then((res) => {
-        setAnalyses(res.data, res.meta);
+        setAnalyses(res.items, res.meta);
       })
       .catch((err: Error) => {
         setError(err.message);
@@ -27,14 +25,6 @@ export default function AnalysisPageClient() {
         setLoading(false);
       });
   }, [accessToken, setAnalyses, setLoading, setError]);
-
-  if (!accessToken) {
-    return (
-      <div className="flex items-center justify-center py-xl">
-        <p className="text-text-secondary">로그인이 필요합니다</p>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (

@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { authenticateRequest, AuthError } from '@/server/middleware/auth.middleware';
-import { createAnalysis, listAnalyses, processAnalysis } from '@/server/services/analysis.service';
+import { optionalAuthenticateRequest, AuthError } from '@/server/middleware/auth.middleware';
+import { createAnalysis, listAnalyses } from '@/server/services/analysis.service';
 import { createAnalysisRequestSchema, analysisQuerySchema } from '@/server/schemas/analysis.schema';
 
 // FEAT-1: Create analysis endpoint
 export async function POST(request: NextRequest) {
   try {
-    const userId = await authenticateRequest(request);
+    const userId = await optionalAuthenticateRequest(request);
     const body = await request.json();
     const parsed = createAnalysisRequestSchema.safeParse(body);
 
@@ -28,8 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await createAnalysis(userId, parsed.data);
-    // Start AI processing in background (fire-and-forget)
-    processAnalysis(result.id).catch(console.error);
+    // Processing is triggered by the SSE stream endpoint
     return NextResponse.json({ data: result }, { status: 201 });
   } catch (e) {
     if (e instanceof AuthError) {
@@ -45,12 +44,12 @@ export async function POST(request: NextRequest) {
 // FEAT-1: List analyses endpoint
 export async function GET(request: NextRequest) {
   try {
-    const userId = await authenticateRequest(request);
+    const userId = await optionalAuthenticateRequest(request);
     const searchParams = request.nextUrl.searchParams;
-    const parsed = analysisQuerySchema.safeParse({
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
-    });
+    const raw: Record<string, string> = {};
+    if (searchParams.get('page')) raw.page = searchParams.get('page')!;
+    if (searchParams.get('limit')) raw.limit = searchParams.get('limit')!;
+    const parsed = analysisQuerySchema.safeParse(raw);
 
     if (!parsed.success) {
       return NextResponse.json(

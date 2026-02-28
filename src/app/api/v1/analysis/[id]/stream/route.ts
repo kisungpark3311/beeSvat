@@ -11,32 +11,20 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  // Auth via query param (SSE doesn't support custom headers)
+  // Auth via query param (SSE doesn't support custom headers) - 게스트 허용
   const token = request.nextUrl.searchParams.get('token');
-  if (!token) {
-    return new Response(
-      JSON.stringify({ error: { code: 'AUTH_ERROR', message: '인증 토큰이 필요합니다' } }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } },
-    );
-  }
-
-  let userId: string;
-  try {
-    const { payload } = await jwtVerify(token, jwtConfig.accessSecret, {
-      algorithms: [jwtConfig.algorithm],
-    });
-    if (!payload.sub || payload.type !== 'access') {
-      return new Response(
-        JSON.stringify({ error: { code: 'AUTH_ERROR', message: '유효하지 않은 토큰입니다' } }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } },
-      );
+  let userId: string | null = null;
+  if (token) {
+    try {
+      const { payload } = await jwtVerify(token, jwtConfig.accessSecret, {
+        algorithms: [jwtConfig.algorithm],
+      });
+      if (payload.sub && payload.type === 'access') {
+        userId = payload.sub;
+      }
+    } catch {
+      // 토큰이 유효하지 않아도 게스트로 진행
     }
-    userId = payload.sub;
-  } catch {
-    return new Response(
-      JSON.stringify({ error: { code: 'AUTH_ERROR', message: '유효하지 않은 토큰입니다' } }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } },
-    );
   }
 
   // Get the analysis
@@ -47,7 +35,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       { status: 404, headers: { 'Content-Type': 'application/json' } },
     );
   }
-  if (analysis.userId !== userId) {
+  // 로그인 사용자는 자기 분석만, 게스트는 게스트 분석만 접근 가능
+  if (analysis.userId && analysis.userId !== userId) {
     return new Response(
       JSON.stringify({ error: { code: 'FORBIDDEN', message: '접근 권한이 없습니다' } }),
       { status: 403, headers: { 'Content-Type': 'application/json' } },
@@ -102,21 +91,35 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
         send('status', { message: '분석 결과를 저장하고 있습니다...' });
 
-        await prisma.analysisResult.create({
-          data: {
-            analysisId: id,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            structure: aiResult.structure as any,
-            explanation: aiResult.explanation,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            mainVerbs: aiResult.mainVerbs as any,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            modifiers: aiResult.modifiers as any,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            connectors: aiResult.connectors as any,
-            aiModel: aiResult.aiModel,
-            processingTimeMs: aiResult.processingTimeMs,
-          },
+        const resultData = {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          structure: aiResult.structure as any,
+          explanation: aiResult.explanation,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          mainVerbs: aiResult.mainVerbs as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          modifiers: aiResult.modifiers as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          connectors: aiResult.connectors as any,
+          // v2: 누락되었던 심층 분석 필드 추가
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          observation: (aiResult.observation ?? null) as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          interpretation: (aiResult.interpretation ?? null) as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          application: (aiResult.application ?? null) as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          theologicalReflection: (aiResult.theologicalReflection ?? null) as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          prayerDedication: (aiResult.prayerDedication ?? null) as any,
+          aiModel: aiResult.aiModel,
+          processingTimeMs: aiResult.processingTimeMs,
+        };
+
+        await prisma.analysisResult.upsert({
+          where: { analysisId: id },
+          create: { analysisId: id, ...resultData },
+          update: resultData,
         });
 
         await prisma.analysis.update({

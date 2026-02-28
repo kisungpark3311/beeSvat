@@ -16,17 +16,9 @@ export default function NewMeditationPage() {
 
   const analysisId = searchParams.get('analysisId') ?? undefined;
 
-  if (!accessToken) {
-    return (
-      <div className="flex items-center justify-center py-xl">
-        <p className="text-text-secondary">로그인이 필요합니다</p>
-      </div>
-    );
-  }
-
   const handleSave = async (content: string) => {
     setIsSaving(true);
-    const meditation = await createMeditation(accessToken, { analysisId, content });
+    const meditation = await createMeditation(accessToken ?? null, { analysisId, content });
     router.push(`/meditation/${meditation.id}`);
   };
 
@@ -35,6 +27,7 @@ export default function NewMeditationPage() {
   };
 
   const handleGenerate = async (aiAnalysisId: string): Promise<string> => {
+    if (!accessToken) throw new Error('AI 묵상 생성은 로그인이 필요합니다');
     const result = await generateMeditation(accessToken, aiAnalysisId);
     return result.content;
   };

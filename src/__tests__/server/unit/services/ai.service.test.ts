@@ -14,19 +14,29 @@ vi.mock('openai', () => ({
   })),
 }));
 
-// Mock ai.config
+// Mock ai.config (v2: dual provider support)
 vi.mock('@/server/config/ai.config', () => ({
   aiConfig: {
-    model: 'gpt-4o-mini',
-    apiKey: 'test-api-key',
-    maxTokens: 4000,
+    provider: 'openai',
+    openaiApiKey: 'test-openai-key',
+    openaiModel: 'gpt-4o-mini',
+    anthropicApiKey: 'test-anthropic-key',
+    anthropicModel: 'claude-sonnet-4-20250514',
+    maxTokens: 8000,
     temperature: 0.3,
-    timeoutMs: 30000,
+    timeoutMs: 60000,
+    get apiKey() {
+      return this.provider === 'anthropic' ? this.anthropicApiKey : this.openaiApiKey;
+    },
+    get model() {
+      return this.provider === 'anthropic' ? this.anthropicModel : this.openaiModel;
+    },
   },
 }));
 
 import { analyzePassage, parseAIResponse } from '@/server/services/ai.service';
 import { buildAnalysisPrompt } from '@/server/prompts/analysis-v1.prompt';
+import { buildAnalysisPromptV2 } from '@/server/prompts/analysis-v2.prompt';
 
 const validAIResponse = {
   structure: {
@@ -119,6 +129,17 @@ const validAIResponse = {
       '믿음으로 응답하는 삶의 결단',
     ],
   },
+  // v2 신규 섹션
+  theologicalReflection: {
+    coreInsight: '하나님의 사랑은 인간의 이해를 초월하는 주권적 은혜이다',
+    personalMessage: '당신은 하나님의 무조건적 사랑 안에서 안전합니다',
+  },
+  prayerDedication: {
+    thanksgiving: '사랑의 하나님, 독생자를 보내주신 은혜에 감사드립니다',
+    confession: '주님의 사랑을 잊고 자기 의로움에 매달렸던 것을 고백합니다',
+    intercession: '이 사랑을 모르는 이들에게 복음이 전해지기를 기도합니다',
+    dedication: '오늘 하루 이 사랑을 기억하며 이웃을 섬기겠습니다',
+  },
 };
 
 describe('AI Service', () => {
@@ -154,6 +175,49 @@ describe('AI Service', () => {
 
       expect(systemPrompt).toContain('개혁신학');
       expect(systemPrompt).toContain('Reformed Theology');
+    });
+  });
+
+  // =========================================
+  // buildAnalysisPromptV2
+  // =========================================
+  describe('buildAnalysisPromptV2', () => {
+    it('v2 프롬프트에 심층 분석 지시가 포함된다', () => {
+      const { systemPrompt, userPrompt } = buildAnalysisPromptV2(
+        '하나님이 세상을 이처럼 사랑하사',
+        '요한복음',
+        3,
+        16,
+        16,
+      );
+
+      // systemPrompt: 8단계 분석 프로세스 포함
+      expect(systemPrompt).toContain('관찰');
+      expect(systemPrompt).toContain('해석');
+      expect(systemPrompt).toContain('적용');
+      expect(systemPrompt).toContain('신학적 성찰');
+      expect(systemPrompt).toContain('기도와 헌신');
+
+      // userPrompt: JSON 스키마에 v2 키 포함
+      expect(userPrompt).toContain('"observation"');
+      expect(userPrompt).toContain('"interpretation"');
+      expect(userPrompt).toContain('"application"');
+      expect(userPrompt).toContain('"theologicalReflection"');
+      expect(userPrompt).toContain('"prayerDedication"');
+      expect(userPrompt).toContain('요한복음');
+      expect(userPrompt).toContain('3:16');
+    });
+
+    it('v2 프롬프트에 신학적 동사 선정 기준이 포함된다', () => {
+      const { systemPrompt } = buildAnalysisPromptV2(
+        '하나님이 세상을 이처럼 사랑하사',
+        '요한복음',
+        3,
+        16,
+        16,
+      );
+
+      expect(systemPrompt).toContain('개혁신학');
     });
   });
 
@@ -194,6 +258,17 @@ describe('AI Service', () => {
       expect(result.application?.pastoralPoints).toHaveLength(3);
     });
 
+    it('v2: 신학적 성찰/기도헌신 섹션을 올바르게 파싱한다', () => {
+      const result = parseAIResponse(JSON.stringify(validAIResponse));
+
+      expect(result.theologicalReflection?.coreInsight).toContain('주권적 은혜');
+      expect(result.theologicalReflection?.personalMessage).toContain('무조건적 사랑');
+      expect(result.prayerDedication?.thanksgiving).toContain('감사');
+      expect(result.prayerDedication?.confession).toContain('고백');
+      expect(result.prayerDedication?.intercession).toContain('기도');
+      expect(result.prayerDedication?.dedication).toContain('섬기겠습니다');
+    });
+
     it('BibleWorks 파싱 없이도 기본 필드만으로 파싱 성공한다', () => {
       const minimalResponse = {
         structure: { original: 'test', parsed: ['test'], hierarchy: {} },
@@ -208,6 +283,8 @@ describe('AI Service', () => {
       expect(result.observation).toBeUndefined();
       expect(result.interpretation).toBeUndefined();
       expect(result.application).toBeUndefined();
+      expect(result.theologicalReflection).toBeUndefined();
+      expect(result.prayerDedication).toBeUndefined();
     });
 
     it('잘못된 형식의 JSON은 에러를 던진다', () => {
@@ -268,7 +345,13 @@ describe('AI Service', () => {
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           model: 'gpt-4o-mini',
+          max_tokens: 8000,
+          temperature: 0.3,
           response_format: { type: 'json_object' },
+          messages: expect.arrayContaining([
+            expect.objectContaining({ role: 'system' }),
+            expect.objectContaining({ role: 'user' }),
+          ]),
         }),
       );
     });

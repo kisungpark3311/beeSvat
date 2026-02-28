@@ -20,16 +20,19 @@ export function useAnalysisStream() {
     error: null,
   });
   const eventSourceRef = useRef<EventSource | null>(null);
+  const doneRef = useRef(false);
 
-  const startStream = useCallback((analysisId: string, accessToken: string) => {
+  const startStream = useCallback((analysisId: string, accessToken: string | null) => {
     // Close any existing connection
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
+    doneRef.current = false;
 
     setState({ status: 'connecting', progress: '연결 중...', result: null, error: null });
 
-    const url = `/api/v1/analysis/${analysisId}/stream?token=${encodeURIComponent(accessToken)}`;
+    const tokenParam = accessToken ? `?token=${encodeURIComponent(accessToken)}` : '';
+    const url = `/api/v1/analysis/${analysisId}/stream${tokenParam}`;
     const es = new EventSource(url);
     eventSourceRef.current = es;
 
@@ -39,12 +42,14 @@ export function useAnalysisStream() {
     });
 
     es.addEventListener('result', (event: MessageEvent) => {
+      doneRef.current = true;
       const data = JSON.parse(event.data) as AnalysisDetail;
       setState({ status: 'completed', progress: '분석 완료', result: data, error: null });
       es.close();
     });
 
     es.addEventListener('error', (event: MessageEvent) => {
+      doneRef.current = true;
       const data = event.data
         ? (JSON.parse(event.data) as { message: string })
         : { message: '분석 중 오류가 발생했습니다' };
@@ -53,7 +58,9 @@ export function useAnalysisStream() {
     });
 
     es.onerror = () => {
-      setState((prev) => ({ ...prev, status: 'error', error: '연결이 끊어졌습니다' }));
+      if (!doneRef.current) {
+        setState((prev) => ({ ...prev, status: 'error', error: '연결이 끊어졌습니다' }));
+      }
       es.close();
     };
   }, []);

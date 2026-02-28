@@ -5,7 +5,7 @@ import type { CreateAnalysisRequest } from '@contracts/analysis.contract';
 
 // FEAT-1: Analysis CRUD service
 
-export async function createAnalysis(userId: string, data: CreateAnalysisRequest) {
+export async function createAnalysis(userId: string | null, data: CreateAnalysisRequest) {
   const analysis = await prisma.analysis.create({
     data: {
       userId,
@@ -25,7 +25,7 @@ export async function createAnalysis(userId: string, data: CreateAnalysisRequest
   };
 }
 
-export async function getAnalysis(userId: string, analysisId: string) {
+export async function getAnalysis(userId: string | null, analysisId: string) {
   const analysis = await prisma.analysis.findUnique({
     where: { id: analysisId },
     include: { result: true },
@@ -35,19 +35,21 @@ export async function getAnalysis(userId: string, analysisId: string) {
     throw new AuthError('분석 결과를 찾을 수 없습니다', 404);
   }
 
-  if (analysis.userId !== userId) {
+  // 로그인 사용자는 자기 분석만, 게스트 분석(userId=null)은 누구나 접근 가능
+  if (analysis.userId && analysis.userId !== userId) {
     throw new AuthError('접근 권한이 없습니다', 403);
   }
 
   return analysis;
 }
 
-export async function listAnalyses(userId: string, query: { page: number; limit: number }) {
+export async function listAnalyses(userId: string | null, query: { page: number; limit: number }) {
   const { page, limit } = query;
+  const where = userId ? { userId } : { userId: null };
 
   const [items, total] = await Promise.all([
     prisma.analysis.findMany({
-      where: { userId },
+      where,
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
@@ -62,7 +64,7 @@ export async function listAnalyses(userId: string, query: { page: number; limit:
         createdAt: true,
       },
     }),
-    prisma.analysis.count({ where: { userId } }),
+    prisma.analysis.count({ where }),
   ]);
 
   return {
@@ -87,6 +89,11 @@ export async function processAnalysis(analysisId: string) {
   }
 
   try {
+    // Remove any existing result (e.g. from a previous failed attempt)
+    await prisma.analysisResult.deleteMany({
+      where: { analysisId },
+    });
+
     const aiResult = await analyzePassage(
       analysis.passageText,
       analysis.book,
@@ -106,6 +113,8 @@ export async function processAnalysis(analysisId: string) {
         observation: (aiResult.observation ?? null) as any,
         interpretation: (aiResult.interpretation ?? null) as any,
         application: (aiResult.application ?? null) as any,
+        theologicalReflection: (aiResult.theologicalReflection ?? null) as any,
+        prayerDedication: (aiResult.prayerDedication ?? null) as any,
         aiModel: aiResult.aiModel,
         processingTimeMs: aiResult.processingTimeMs,
       },

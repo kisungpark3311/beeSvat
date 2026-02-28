@@ -182,15 +182,15 @@ export function searchVerses(query: string, page: number, limit: number): BibleS
 }
 
 export function getTodayQT(): TodayQTResponse {
-  // For MVP, return a hardcoded QT passage
+  // For MVP, return a hardcoded QT passage (요한복음 3:16 only)
   return {
     book: '요한복음',
     chapter: 3,
     verseStart: 16,
-    verseEnd: 18,
+    verseEnd: 16,
     title: '하나님의 사랑',
     fullText:
-      '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라 하나님이 그 아들을 세상에 보내신 것은 세상을 심판하려 하심이 아니요 그로 말미암아 세상이 구원을 받게 하려 하심이라 그를 믿는 자는 심판을 받지 아니하는 것이요 믿지 아니하는 자는 하나님의 독생자의 이름을 믿지 아니하므로 벌써 심판을 받은 것이니라',
+      '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라',
     date: new Date().toISOString().split('T')[0] ?? '',
   };
 }

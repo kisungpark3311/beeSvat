@@ -9,8 +9,14 @@ import type { TodayQTResponse } from '@/services/bibleService';
 import type { BibleVerse } from './BibleViewer';
 import BibleViewer from './BibleViewer';
 import Button from '@/components/ui/Button';
+import type { VerseInitialData } from './VerseInputForm';
 
-export default function TodayQT() {
+interface TodayQTProps {
+  onAnalyze?: (data: VerseInitialData) => void;
+  isAnalyzing?: boolean;
+}
+
+export default function TodayQT({ onAnalyze, isAnalyzing }: TodayQTProps) {
   const [qtData, setQtData] = useState<TodayQTResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,13 +92,12 @@ export default function TodayQT() {
   ];
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-lg">
-      <div className="mb-md flex items-center justify-between">
+    <div className="rounded-lg border border-border bg-surface p-sm">
+      <div className="mb-xs flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-text-primary">{qtData.title}</h2>
-          <p className="mt-1 text-sm text-text-secondary">
+          <h2 className="text-lg font-semibold text-text-primary">{qtData.title}</h2>
+          <p className="text-xs text-text-secondary">
             {qtData.book} {qtData.chapter}:{qtData.verseStart}
-            {qtData.verseEnd > qtData.verseStart ? `-${qtData.verseEnd}` : ''}
             <span className="ml-2">{qtData.date}</span>
           </p>
         </div>
@@ -100,12 +105,23 @@ export default function TodayQT() {
 
       <BibleViewer verses={verses} book={qtData.book} chapter={qtData.chapter} />
 
-      <div className="mt-md">
-        <Link href="/">
-          <Button variant="secondary" size="md">
-            이 구절 분석하기
-          </Button>
-        </Link>
+      <div className="mt-xs">
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={isAnalyzing}
+          onClick={() => {
+            onAnalyze?.({
+              book: qtData.book,
+              chapter: qtData.chapter,
+              verseStart: qtData.verseStart,
+              verseEnd: qtData.verseEnd,
+              passageText: qtData.fullText,
+            });
+          }}
+        >
+          {isAnalyzing ? '분석 요청 중...' : '이 구절 분석하기'}
+        </Button>
       </div>
     </div>
   );
