@@ -43,6 +43,31 @@ export async function listAnalyses(accessToken: string | null, page?: number, li
   return res.data;
 }
 
+export async function deleteAnalysis(accessToken: string | null, id: string) {
+  const headers: Record<string, string> = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+  const { data: res } = await apiClient.delete<{ data: { id: string; deleted: boolean } }>(
+    `${BASE}/${id}`,
+    { headers },
+  );
+  return res.data;
+}
+
+export async function retryAnalysis(accessToken: string | null, id: string) {
+  const headers: Record<string, string> = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+  const { data: res } = await apiClient.patch<{ data: { id: string; status: string } }>(
+    `${BASE}/${id}`,
+    {},
+    { headers },
+  );
+  return res.data;
+}
+
 export async function rateAnalysis(accessToken: string, id: string, rating: number) {
   const { data: res } = await apiClient.patch<{ data: RatingResponse }>(
     `${BASE}/${id}/rating`,

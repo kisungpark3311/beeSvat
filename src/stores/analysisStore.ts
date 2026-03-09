@@ -12,6 +12,8 @@ interface AnalysisState {
   error: string | null;
   setCurrentAnalysis: (analysis: AnalysisDetail | null) => void;
   setAnalyses: (analyses: AnalysisListItem[], meta: PaginationMeta) => void;
+  removeAnalysis: (id: string) => void;
+  updateAnalysisStatus: (id: string, status: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   reset: () => void;
@@ -25,6 +27,15 @@ export const useAnalysisStore = create<AnalysisState>((set) => ({
   error: null,
   setCurrentAnalysis: (analysis) => set({ currentAnalysis: analysis }),
   setAnalyses: (analyses, meta) => set({ analyses, meta }),
+  removeAnalysis: (id) =>
+    set((state) => ({
+      analyses: state.analyses.filter((a) => a.id !== id),
+      meta: state.meta ? { ...state.meta, total: state.meta.total - 1 } : null,
+    })),
+  updateAnalysisStatus: (id, status) =>
+    set((state) => ({
+      analyses: state.analyses.map((a) => (a.id === id ? { ...a, status } : a)),
+    })),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
   reset: () =>

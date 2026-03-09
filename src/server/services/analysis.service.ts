@@ -135,6 +135,68 @@ export async function processAnalysis(analysisId: string) {
   }
 }
 
+export async function deleteAnalysis(userId: string | null, analysisId: string) {
+  const analysis = await prisma.analysis.findUnique({
+    where: { id: analysisId },
+  });
+
+  if (!analysis) {
+    throw new AuthError('분석 결과를 찾을 수 없습니다', 404);
+  }
+
+  if (analysis.userId && analysis.userId !== userId) {
+    throw new AuthError('접근 권한이 없습니다', 403);
+  }
+
+  // 게스트 분석은 게스트만 삭제 가능
+  if (!analysis.userId && userId) {
+    throw new AuthError('접근 권한이 없습니다', 403);
+  }
+
+  await prisma.analysis.delete({
+    where: { id: analysisId },
+  });
+
+  return { id: analysisId, deleted: true };
+}
+
+export async function retryAnalysis(userId: string | null, analysisId: string) {
+  const analysis = await prisma.analysis.findUnique({
+    where: { id: analysisId },
+  });
+
+  if (!analysis) {
+    throw new AuthError('분석 결과를 찾을 수 없습니다', 404);
+  }
+
+  if (analysis.userId && analysis.userId !== userId) {
+    throw new AuthError('접근 권한이 없습니다', 403);
+  }
+
+  if (!analysis.userId && userId) {
+    throw new AuthError('접근 권한이 없습니다', 403);
+  }
+
+  if (analysis.status === 'completed') {
+    throw new AuthError('이미 완료된 분석입니다', 400);
+  }
+
+  // 기존 결과 삭제 후 상태 리셋
+  await prisma.analysisResult.deleteMany({
+    where: { analysisId },
+  });
+
+  const updated = await prisma.analysis.update({
+    where: { id: analysisId },
+    data: { status: 'pending' },
+  });
+
+  return {
+    id: updated.id,
+    status: updated.status,
+  };
+}
+
 export async function rateAnalysis(userId: string, analysisId: string, rating: number) {
   const analysis = await prisma.analysis.findUnique({
     where: { id: analysisId },
