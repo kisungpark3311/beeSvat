@@ -59,7 +59,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const stream = new ReadableStream({
       start(controller) {
         const encoder = new TextEncoder();
-        controller.enqueue(encoder.encode(`event: result\ndata: ${JSON.stringify(completed)}\n\n`));
+        const json = JSON.stringify(completed);
+        const lines = json
+          .split('\n')
+          .map((line) => `data: ${line}`)
+          .join('\n');
+        controller.enqueue(encoder.encode(`event: result\n${lines}\n\n`));
         controller.close();
       },
     });
@@ -73,7 +78,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       const encoder = new TextEncoder();
 
       function send(event: string, data: unknown) {
-        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        const json = JSON.stringify(data);
+        // SSE 프로토콜: data 안에 줄바꿈이 있으면 각 줄마다 data: 접두사 필요
+        const lines = json
+          .split('\n')
+          .map((line) => `data: ${line}`)
+          .join('\n');
+        controller.enqueue(encoder.encode(`event: ${event}\n${lines}\n\n`));
       }
 
       try {

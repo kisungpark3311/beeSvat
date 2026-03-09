@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Home page - Analysis section', () => {
   test('should display analysis heading on home page', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: '성경 구문 분석' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '직접 입력' })).toBeVisible();
   });
 
   test('should display VerseInputForm with all fields', async ({ page }) => {
@@ -13,24 +13,46 @@ test.describe('Home page - Analysis section', () => {
     await expect(page.getByLabel('성경 책명')).toBeVisible();
     await expect(page.getByLabel('장')).toBeVisible();
     await expect(page.getByLabel('시작 절')).toBeVisible();
-    await expect(page.getByLabel('끝 절')).toBeVisible();
-    await expect(page.getByLabel('본문 직접 입력')).toBeVisible();
+    await expect(page.getByLabel('끝 절 (선택)')).toBeVisible();
+    await expect(page.getByLabel('본문')).toBeVisible();
     await expect(page.getByRole('button', { name: '구문 분석하기' })).toBeVisible();
   });
 
-  test('should show login required error when submitting without auth', async ({ page }) => {
-    await page.goto('/');
+  test('should submit analysis without authentication (guest access)', async ({ page }) => {
+    const mockAnalysisId = 'guest-analysis-123';
 
-    // Fill in all required fields
+    await page.route('**/api/v1/analysis/', async (route) => {
+      if (route.request().method() === 'POST') {
+        await route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: {
+              id: mockAnalysisId,
+              book: '요한복음',
+              chapter: 3,
+              verseStart: 16,
+              verseEnd: 16,
+              passageText: '하나님이 세상을 이첫럼 사랑하사',
+              status: 'pending',
+              rating: null,
+              createdAt: '2026-02-26T00:00:00.000Z',
+            },
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    await page.goto('/');
     await page.getByLabel('성경 책명').fill('요한복음');
     await page.getByLabel('장').fill('3');
     await page.getByLabel('시작 절').fill('16');
-    await page.getByLabel('본문 직접 입력').fill('하나님이 세상을 이처럼 사랑하사');
-
+    await page.getByLabel('본문').fill('하나님이 세상을 이첫럼 사랑하사');
     await page.getByRole('button', { name: '구문 분석하기' }).click();
-
-    // Without authentication, form should show login required error
-    await expect(page.getByText('로그인이 필요합니다')).toBeVisible();
+    await page.waitForURL(`**/analysis/${mockAnalysisId}`);
+    expect(page.url()).toContain(`/analysis/${mockAnalysisId}`);
   });
 
   test('should show validation error when book name is empty', async ({ page }) => {
@@ -39,7 +61,7 @@ test.describe('Home page - Analysis section', () => {
     // Attempt to submit with missing book name but other fields filled
     await page.getByLabel('장').fill('3');
     await page.getByLabel('시작 절').fill('16');
-    await page.getByLabel('본문 직접 입력').fill('테스트 본문');
+    await page.getByLabel('본문').fill('테스트 본문');
 
     await page.getByRole('button', { name: '구문 분석하기' }).click();
 
@@ -52,21 +74,33 @@ test.describe('Home page - Analysis section', () => {
 });
 
 test.describe('Analysis list page', () => {
-  test('should show login required when not authenticated', async ({ page }) => {
-    await page.goto('/analysis');
-    await expect(page.getByText('로그인이 필요합니다')).toBeVisible();
-  });
-
-  test('should display analysis list heading when authenticated', async ({ page }) => {
-    // Mock the analysis list API
-    await page.route('**/api/v1/analysis', async (route) => {
+  test('should show analysis list when visiting without authentication', async ({ page }) => {
+    await page.route('**/api/v1/analysis/', async (route) => {
       if (route.request().method() === 'GET') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            data: [],
-            meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
+            data: { items: [], meta: { page: 1, limit: 10, total: 0, totalPages: 0 } },
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+    await page.goto('/analysis');
+    await expect(page.getByRole('heading', { name: '구문 분석 목록' })).toBeVisible();
+  });
+
+  test('should display analysis list heading when authenticated', async ({ page }) => {
+    // Mock the analysis list API
+    await page.route('**/api/v1/analysis/', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: { items: [], meta: { page: 1, limit: 10, total: 0, totalPages: 0 } },
           }),
         });
       } else {
@@ -92,7 +126,7 @@ test.describe('Analysis list page', () => {
         },
         version: 0,
       };
-      localStorage.setItem('auth-storage', JSON.stringify(authState));
+      localStorage.setItem('beesvat-auth', JSON.stringify(authState));
     });
 
     await page.goto('/analysis');
@@ -101,14 +135,13 @@ test.describe('Analysis list page', () => {
 
   test('should display empty state message when no analyses exist', async ({ page }) => {
     // Mock empty analysis list
-    await page.route('**/api/v1/analysis', async (route) => {
+    await page.route('**/api/v1/analysis/', async (route) => {
       if (route.request().method() === 'GET') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            data: [],
-            meta: { page: 1, limit: 10, total: 0, totalPages: 0 },
+            data: { items: [], meta: { page: 1, limit: 10, total: 0, totalPages: 0 } },
           }),
         });
       } else {
@@ -134,7 +167,7 @@ test.describe('Analysis list page', () => {
         },
         version: 0,
       };
-      localStorage.setItem('auth-storage', JSON.stringify(authState));
+      localStorage.setItem('beesvat-auth', JSON.stringify(authState));
     });
 
     await page.goto('/analysis');
@@ -165,14 +198,13 @@ test.describe('Analysis list page', () => {
       },
     ];
 
-    await page.route('**/api/v1/analysis', async (route) => {
+    await page.route('**/api/v1/analysis/', async (route) => {
       if (route.request().method() === 'GET') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            data: mockAnalyses,
-            meta: { page: 1, limit: 10, total: 2, totalPages: 1 },
+            data: { items: mockAnalyses, meta: { page: 1, limit: 10, total: 2, totalPages: 1 } },
           }),
         });
       } else {
@@ -198,7 +230,7 @@ test.describe('Analysis list page', () => {
         },
         version: 0,
       };
-      localStorage.setItem('auth-storage', JSON.stringify(authState));
+      localStorage.setItem('beesvat-auth', JSON.stringify(authState));
     });
 
     await page.goto('/analysis');
@@ -211,9 +243,30 @@ test.describe('Analysis list page', () => {
 });
 
 test.describe('Analysis detail page', () => {
-  test('should show login required when not authenticated', async ({ page }) => {
+  test('should load analysis detail without authentication (guest access)', async ({ page }) => {
+    await page.route('**/api/v1/analysis/test-id', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            id: 'test-id',
+            book: '요한복음',
+            chapter: 3,
+            verseStart: 16,
+            verseEnd: 16,
+            passageText: '하나님이 세상을 이첫럼 사랑하사',
+            status: 'completed',
+            rating: null,
+            result: null,
+            createdAt: '2026-02-26T00:00:00.000Z',
+          },
+        }),
+      });
+    });
+
     await page.goto('/analysis/test-id');
-    await expect(page.getByText('로그인이 필요합니다')).toBeVisible();
+    await expect(page.getByText('로그인이 필요합니다')).not.toBeVisible();
   });
 
   test('should show loading state initially when authenticated', async ({ page }) => {
@@ -257,7 +310,7 @@ test.describe('Analysis detail page', () => {
         },
         version: 0,
       };
-      localStorage.setItem('auth-storage', JSON.stringify(authState));
+      localStorage.setItem('beesvat-auth', JSON.stringify(authState));
     });
 
     await page.goto('/analysis/test-id');
@@ -295,7 +348,7 @@ test.describe('Analysis detail page', () => {
         },
         version: 0,
       };
-      localStorage.setItem('auth-storage', JSON.stringify(authState));
+      localStorage.setItem('beesvat-auth', JSON.stringify(authState));
     });
 
     await page.goto('/analysis/non-existent');
@@ -312,21 +365,23 @@ test.describe('Analysis form submission with auth', () => {
     const mockAnalysisId = 'new-analysis-123';
 
     // Mock the analysis creation API
-    await page.route('**/api/v1/analysis', async (route) => {
+    await page.route('**/api/v1/analysis/', async (route) => {
       if (route.request().method() === 'POST') {
         await route.fulfill({
           status: 201,
           contentType: 'application/json',
           body: JSON.stringify({
-            id: mockAnalysisId,
-            book: '요한복음',
-            chapter: 3,
-            verseStart: 16,
-            verseEnd: 16,
-            passageText: '하나님이 세상을 이처럼 사랑하사',
-            status: 'pending',
-            rating: null,
-            createdAt: '2026-02-26T00:00:00.000Z',
+            data: {
+              id: mockAnalysisId,
+              book: '요한복음',
+              chapter: 3,
+              verseStart: 16,
+              verseEnd: 16,
+              passageText: '하나님이 세상을 이처럼 사랑하사',
+              status: 'pending',
+              rating: null,
+              createdAt: '2026-02-26T00:00:00.000Z',
+            },
           }),
         });
       } else {
@@ -340,16 +395,18 @@ test.describe('Analysis form submission with auth', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          id: mockAnalysisId,
-          book: '요한복음',
-          chapter: 3,
-          verseStart: 16,
-          verseEnd: 16,
-          passageText: '하나님이 세상을 이처럼 사랑하사',
-          status: 'pending',
-          rating: null,
-          result: null,
-          createdAt: '2026-02-26T00:00:00.000Z',
+          data: {
+            id: mockAnalysisId,
+            book: '요한복음',
+            chapter: 3,
+            verseStart: 16,
+            verseEnd: 16,
+            passageText: '하나님이 세상을 이처럼 사랑하사',
+            status: 'pending',
+            rating: null,
+            result: null,
+            createdAt: '2026-02-26T00:00:00.000Z',
+          },
         }),
       });
     });
@@ -381,7 +438,7 @@ test.describe('Analysis form submission with auth', () => {
         },
         version: 0,
       };
-      localStorage.setItem('auth-storage', JSON.stringify(authState));
+      localStorage.setItem('beesvat-auth', JSON.stringify(authState));
     });
 
     await page.goto('/');
@@ -390,7 +447,7 @@ test.describe('Analysis form submission with auth', () => {
     await page.getByLabel('성경 책명').fill('요한복음');
     await page.getByLabel('장').fill('3');
     await page.getByLabel('시작 절').fill('16');
-    await page.getByLabel('본문 직접 입력').fill('하나님이 세상을 이처럼 사랑하사');
+    await page.getByLabel('본문').fill('하나님이 세상을 이처럼 사랑하사');
 
     await page.getByRole('button', { name: '구문 분석하기' }).click();
 

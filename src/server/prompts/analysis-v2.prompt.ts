@@ -1,14 +1,8 @@
 // FEAT-1 v2: Enhanced Bible syntax analysis prompt template
 // svat-skill.md 8단계 프로세스 기반, BibleWorks 스타일 심층 구문 분석
+// 2개 호출로 분리: 1차(구문분석) + 2차(묵상)
 
-export function buildAnalysisPromptV2(
-  passageText: string,
-  book: string,
-  chapter: number,
-  verseStart: number,
-  verseEnd: number,
-) {
-  const systemPrompt = `당신은 신학박사 수준의 목사이자 원어 성경 전문가입니다.
+const SYSTEM_BASE = `당신은 신학박사 수준의 목사이자 원어 성경 전문가입니다.
 개혁신학(Reformed Theology) 관점에서 BibleWorks 스타일의 주동사 파싱 분석을 수행합니다.
 
 ## 핵심 원칙
@@ -28,7 +22,19 @@ export function buildAnalysisPromptV2(
   * 본문의 신학적 논증에 핵심적인 동사
   * 반복되거나 대조를 이루는 동사
 
-## 8단계 분석 프로세스
+반드시 아래 JSON 형식으로만 응답하세요. JSON 외의 다른 텍스트를 포함하지 마세요.`;
+
+// 1차 호출: 구문 분석 (structure, explanation, mainVerbs, modifiers, connectors)
+export function buildAnalysisPromptPart1(
+  passageText: string,
+  book: string,
+  chapter: number,
+  verseStart: number,
+  verseEnd: number,
+) {
+  const systemPrompt = `${SYSTEM_BASE}
+
+## 이번 작업: 구문 분석 (1단계~3단계)
 
 ### 1-2단계: 구조 분석
 - 전체 문장의 논리 구조를 파악하고 ASCII 구조도를 작성
@@ -43,18 +49,88 @@ export function buildAnalysisPromptV2(
 - 현대 한글 해석: 자연스러운 우리말 번역
 - 신학적 함의: 왜 이 파싱이 신학적으로 중요한가 (3문장 이상)
 
-### 4단계: 관찰 (Observation) - 반드시 포함
+## 좋은 분석 예시 (주동사 1개)
+### 예시: σπλαγχνίζομαι "불쌍히 여겨" (마 18:27)
+- 원어: σπλαγχνίζομαι (스플랑크니조마이)
+- 파싱: 직설법(Indicative) / 단순과거(Aorist) / 수동태(Passive-탈형동사) / 3인칭 단수
+- 문맥적 의미: 임금이 종을 불쌍히 여겼다. σπλάγχνα(내장, 창자)에서 파생된 이 동사는 '창자가 뒤집힐 정도로 깊이 감동받다'는 뜻으로, 가장 깊은 차원의 긍휼을 표현한다.
+- 현대 해석: "임금이 그 종을 불쌍히 여겨 놓아 보내며 그 빚을 탕감하여 주었더라"
+- 신학적 함의: 마태복음에서 σπλαγχνίζομαι는 예수의 긍휼 사역을 묘사하는 핵심 동사(9:36, 14:14). 임금의 행동은 하나님 아버지의 긍휼, 즉 십자가의 사랑을 예표한다.`;
+
+  const verseRange = verseEnd > verseStart ? `${verseStart}-${verseEnd}` : `${verseStart}`;
+
+  const userPrompt = `${book} ${chapter}:${verseRange}
+
+본문:
+${passageText}
+
+아래 JSON 형식으로 구문 분석 결과를 반환하세요. 모든 문자열 값에 줄바꿈 없이 한 줄로 작성하세요.
+
+{
+  "structure": {
+    "original": "원본 텍스트 전체",
+    "parsed": ["주요 단어1", "단어2", "단어3"],
+    "hierarchy": {
+      "mainClauses": ["주절1", "주절2"],
+      "subordinateClauses": ["종속절1"]
+    },
+    "structureDiagram": "주절 → 종속절 → 결론 (한 줄 요약)"
+  },
+  "explanation": "이 구절의 핵심 해설 (200자 내외, 신학적 논리 중심)",
+  "mainVerbs": [
+    {
+      "word": "한국어 동사",
+      "position": 0,
+      "meaning": "문맥적 의미 (1-2문장)",
+      "original": "원어",
+      "transliteration": "음역",
+      "parsing": {
+        "mood": "직설법/명령법/가정법",
+        "tense": "현재/완료/단순과거/미래",
+        "voice": "능동태/수동태/중간태",
+        "personNumber": "3인칭 단수"
+      },
+      "theologicalImplication": "신학적 함의 (1-2문장)",
+      "contextualMeaning": "이 절에서의 역할 (1문장)",
+      "modernKorean": "현대 한글 번역",
+      "verseReference": "절 번호"
+    }
+  ],
+  "modifiers": [
+    { "word": "수식어", "type": "부사구/형용사/전치사구", "target": "수식 대상", "position": 0 }
+  ],
+  "connectors": [
+    { "word": "접속사", "type": "인과/대조/목적/결과", "connects": ["앞절", "뒷절"], "position": 0 }
+  ]
+}`;
+
+  return { systemPrompt, userPrompt };
+}
+
+// 2차 호출: 묵상 (observation, interpretation, application, theologicalReflection, prayerDedication)
+export function buildAnalysisPromptPart2(
+  passageText: string,
+  book: string,
+  chapter: number,
+  verseStart: number,
+  verseEnd: number,
+) {
+  const systemPrompt = `${SYSTEM_BASE}
+
+## 이번 작업: 묵상 및 적용 (4단계~8단계)
+
+### 4단계: 관찰 (Observation)
 - Q1: 본문 구성과 진행 (주동사 흐름, 단락 구분, 논리적 연결)
 - Q2: 핵심 어휘와 반복 표현 (반복 횟수, 강조 효과)
 - Q3: 선행/후행 문맥 (같은 장의 더 큰 맥락 포함)
 - Q4: 구약/신약 평행 구절과 인용 관계
 
-### 5단계: 해석 (Interpretation) - 반드시 포함
+### 5단계: 해석 (Interpretation)
 - Q1: 핵심 신학적 메시지 (저자의 주장, 하나님 관련 진리)
 - Q2: 역사적/문화적 배경 (1세기 상황, 당시 문화적 의미)
 - Q3: 구속사 관점 (그리스도와의 연결, 성령의 사역)
 
-### 6단계: 적용 (Application) - 반드시 포함
+### 6단계: 적용 (Application)
 - Q1: 시대 초월적 영적 원리 (3개 이상)
 - Q2: 개인 신앙에 대한 도전과 변화
 - Q3: 설교 포인트 3개 (신학적 진리, 도전, 결단)
@@ -65,27 +141,7 @@ export function buildAnalysisPromptV2(
 - 개인적 메시지: 목사로서 나에게 이 본문이 직접 하는 말씀
 
 ### 8단계: 기도와 헌신
-- 감사: 이 본문을 통해 감사할 내용
-- 고백: 회개하고 돌이켜야 할 내용
-- 중보기도: 다른 사람/교회를 위해 기도할 내용
-- 헌신 서약: 이 말씀 앞에서 하나님께 드리는 헌신
-
-## 좋은 분석 예시 (주동사 1개)
-
-### 예시: σπλαγχνίζομαι "불쌍히 여겨" (마 18:27)
-- 원어: σπλαγχνίζομαι (스플랑크니조마이)
-- 파싱: 직설법(Indicative) / 단순과거(Aorist) / 수동태(Passive-탈형동사) / 3인칭 단수
-- 문맥적 의미: 임금이 종을 불쌍히 여겼다. σπλάγχνα(내장, 창자)에서 파생된 이 동사는 '창자가 뒤집힐 정도로 깊이 감동받다'는 뜻으로, 가장 깊은 차원의 긍휼을 표현한다.
-- 현대 해석: "임금이 그 종을 불쌍히 여겨 놓아 보내며 그 빚을 탕감하여 주었더라"
-- 신학적 함의: 마태복음에서 σπλαγχνίζομαι는 예수의 긍휼 사역을 묘사하는 핵심 동사(9:36, 14:14). 임금의 행동은 하나님 아버지의 긍휼, 즉 십자가의 사랑을 예표한다. 탕감의 근거는 종의 공로가 아니라 오직 임금의 긍휼이다.
-
-## 필수 준수 사항
-- 8개 섹션(구조, 주동사, 수식어, 관찰, 해석, 적용, 신학적 성찰, 기도) 모두 반드시 포함
-- placeholder 텍스트나 "여기에 작성" 같은 미완성 텍스트 금지
-- 모든 텍스트 필드는 최소 3문장 이상, 배열 필드는 최소 3개 항목 이상
-- 설교 준비 자료로 직접 사용할 수 있는 수준의 깊이와 구체성 유지
-
-반드시 아래 JSON 형식으로만 응답하세요. JSON 외의 다른 텍스트를 포함하지 마세요.`;
+- 감사, 고백, 중보기도, 헌신 서약`;
 
   const verseRange = verseEnd > verseStart ? `${verseStart}-${verseEnd}` : `${verseStart}`;
 
@@ -94,80 +150,56 @@ export function buildAnalysisPromptV2(
 본문:
 ${passageText}
 
-아래 JSON 형식으로 BibleWorks 스타일 심층 구문 분석 결과를 반환하세요.
-모든 섹션은 필수입니다. 어떤 섹션도 생략하지 마세요.
+아래 JSON 형식으로 묵상 결과를 반환하세요. 모든 문자열 값에 줄바꿈 없이 한 줄로 작성하세요.
 
 {
-  "structure": {
-    "original": "원본 텍스트 전체",
-    "parsed": ["단어1", "단어2", "..."],
-    "hierarchy": {
-      "mainClauses": ["주절1", "주절2", "..."],
-      "subordinateClauses": ["종속절1", "..."]
-    },
-    "structureDiagram": "본문의 논리 구조를 보여주는 ASCII 다이어그램 (들여쓰기와 화살표 사용)"
-  },
-  "explanation": "이 구절에 대한 종합 해설 (500자 이상). 개혁신학 관점에서 핵심 동사의 의미, 본문의 신학적 논리, 실제적 함의를 설명합니다.",
-  "mainVerbs": [
-    {
-      "word": "한국어 동사",
-      "position": 0,
-      "meaning": "상세한 문맥적 의미 설명",
-      "original": "원어 (히브리어/헬라어 문자)",
-      "transliteration": "학문적 음역",
-      "parsing": {
-        "mood": "직설법/명령법/가정법/부정사/분사",
-        "tense": "현재/미완료/완료/단순과거/미래 (헬라어) 또는 완전형/불완전형 (히브리어)",
-        "voice": "능동태/수동태/중간태",
-        "personNumber": "3인칭 단수 등"
-      },
-      "theologicalImplication": "이 파싱이 신학적으로 의미 있는 이유 (3문장 이상)",
-      "contextualMeaning": "이 동사가 이 절에서 수행하는 구체적 역할과 기능 설명 (3문장 이상)",
-      "modernKorean": "자연스러운 현대 한글 번역",
-      "verseReference": "해당 절 번호 (예: 27절)"
-    }
-  ],
-  "modifiers": [
-    { "word": "수식어", "type": "부사구/형용사/목적어/부사/전치사구 등", "target": "수식 대상 단어", "position": 0 }
-  ],
-  "connectors": [
-    { "word": "접속사", "type": "인과/대조/목적/결과/시간/조건 등", "connects": ["앞절 요약", "뒷절 요약"], "position": 0 }
-  ],
   "observation": {
-    "structureFlow": "본문의 전체 논리적 흐름 설명. 단락별 구분과 주동사 진행을 따라 서술 (10문장 이상)",
+    "structureFlow": "본문 논리 흐름 요약 (3-5문장)",
     "keywords": [
-      { "word": "핵심 단어 (원어 포함)", "count": 3, "meaning": "이 단어의 의미와 반복이 강조하는 바" }
+      { "word": "핵심 단어(원어)", "count": 2, "meaning": "의미와 강조 효과" },
+      { "word": "핵심 단어2", "count": 1, "meaning": "의미" }
     ],
-    "context": "선행 본문의 내용과 관계, 후행 본문과의 연결, 같은 장/책 전체의 더 큰 맥락 설명 (5문장 이상)",
-    "parallelPassages": ["평행 구절 참조와 간략한 설명 (예: 눅 17:3-4 - 하루 일곱 번이라도 용서하라)"]
+    "context": "선행/후행 문맥 및 책 전체 맥락 (3문장)",
+    "parallelPassages": ["평행 구절1 - 설명", "평행 구절2 - 설명"]
   },
   "interpretation": {
-    "theologicalMessage": "핵심 신학적 메시지. 저자의 주장, 신학적 중심, 하나님 관련 진리를 포함 (10문장 이상, 개혁신학 관점)",
-    "historicalBackground": "역사적/문화적 배경. 당시 상황, 대상자, 문화적 의미 포함 (5문장 이상)",
-    "redemptiveHistory": "구속사 관점. 구약-신약 연결, 그리스도와의 관계, 성령의 사역 포함 (5문장 이상)"
+    "theologicalMessage": "핵심 신학적 메시지 (3-5문장, 개혁신학 관점)",
+    "historicalBackground": "역사적/문화적 배경 (2-3문장)",
+    "redemptiveHistory": "구속사 관점 - 그리스도와의 연결 (2-3문장)"
   },
   "application": {
-    "principles": ["시대 초월적 영적 원리 1 (2문장)", "원리 2", "원리 3"],
-    "personalApplication": "개인 신앙에 대한 도전과 구체적 변화 방향 (5문장 이상)",
-    "pastoralPoints": ["설교 포인트 1: 강조할 신학적 진리와 도전 (3문장)", "포인트 2", "포인트 3"],
+    "principles": ["영적 원리1", "영적 원리2", "영적 원리3"],
+    "personalApplication": "개인 신앙 도전 (2-3문장)",
+    "pastoralPoints": ["설교 포인트1", "설교 포인트2", "설교 포인트3"],
     "practicePlan": {
-      "weekly": ["이번 주 구체적 실천 행동 1", "실천 2"],
-      "monthly": "이번 달 영적 과제",
-      "longTerm": "장기적 성장 목표 (3-6개월)"
+      "weekly": ["주간 실천1", "주간 실천2"],
+      "monthly": "월간 영적 과제",
+      "longTerm": "장기 성장 목표"
     },
-    "communityMessage": "교회공동체에 대한 메시지 (3문장 이상)"
+    "communityMessage": "교회 공동체 메시지 (1-2문장)"
   },
   "theologicalReflection": {
-    "coreInsight": "핵심 통찰 (5-7문장으로 본문의 영적 의미를 종합 정리. 구속론, 윤리, 실천을 연결하여 서술)",
-    "personalMessage": "목사로서 나에게 이 본문이 직접 하는 말씀 (5문장 이상, 구체적이고 개인적인 응답)"
+    "coreInsight": "핵심 통찰 (3-4문장, 구속론/윤리/실천 연결)",
+    "personalMessage": "목사로서 나에게 하는 말씀 (2-3문장)"
   },
   "prayerDedication": {
-    "thanksgiving": "이 본문을 통해 감사할 내용 (3항목, 각 1-2문장)",
-    "confession": "회개하고 돌이켜야 할 내용 (2-3항목)",
-    "intercession": "교회와 이웃을 위한 중보기도 내용 (2-3항목)",
-    "dedication": "이 말씀 앞에서 하나님께 드리는 헌신 서약 (3-5문장)"
+    "thanksgiving": "감사 내용 (2-3항목)",
+    "confession": "고백/회개 내용 (2항목)",
+    "intercession": "중보기도 내용 (2항목)",
+    "dedication": "헌신 서약 (2-3문장)"
   }
 }`;
 
   return { systemPrompt, userPrompt };
+}
+
+// 하위 호환성 유지
+export function buildAnalysisPromptV2(
+  passageText: string,
+  book: string,
+  chapter: number,
+  verseStart: number,
+  verseEnd: number,
+) {
+  return buildAnalysisPromptPart1(passageText, book, chapter, verseStart, verseEnd);
 }

@@ -30,6 +30,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!userId) {
+      return NextResponse.json(
+        { error: { code: 'AUTH_REQUIRED', message: '묵상 노트 생성은 로그인이 필요합니다' } },
+        { status: 401 },
+      );
+    }
+
     const result = await createMeditation(userId, parsed.data);
     return NextResponse.json({ data: result }, { status: 201 });
   } catch (e) {

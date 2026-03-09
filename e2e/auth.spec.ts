@@ -65,14 +65,16 @@ test.describe('Register page', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          user: {
-            id: 'test-user-id',
-            email: 'newuser@example.com',
-            nickname: 'newuser',
-            role: 'user',
+          data: {
+            user: {
+              id: 'test-user-id',
+              email: 'newuser@example.com',
+              nickname: 'newuser',
+              role: 'user',
+            },
+            accessToken: 'mock-access-token',
+            refreshToken: 'mock-refresh-token',
           },
-          accessToken: 'mock-access-token',
-          refreshToken: 'mock-refresh-token',
         }),
       });
     });
@@ -133,15 +135,17 @@ test.describe('Login page', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          user: {
-            id: 'test-user-id',
-            email: 'test@example.com',
-            nickname: 'testuser',
-            role: 'user',
-            profileImage: null,
+          data: {
+            user: {
+              id: 'test-user-id',
+              email: 'test@example.com',
+              nickname: 'testuser',
+              role: 'user',
+              profileImage: null,
+            },
+            accessToken: 'mock-access-token',
+            refreshToken: 'mock-refresh-token',
           },
-          accessToken: 'mock-access-token',
-          refreshToken: 'mock-refresh-token',
         }),
       });
     });

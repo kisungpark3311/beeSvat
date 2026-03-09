@@ -46,13 +46,28 @@ export default function SettingsPage() {
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col gap-sm">
+          <div className="flex flex-col gap-md">
             <p className="text-sm text-text-secondary">
-              현재 게스트 모드로 사용 중입니다. 분석 기능은 로그인 없이도 이용 가능합니다.
+              로그인하면 묵상 노트를 저장하고 분석 기록을 관리할 수 있습니다.
             </p>
-            <Button variant="primary" size="md" onClick={() => router.push('/')}>
-              홈으로 이동
-            </Button>
+            <div className="flex gap-sm">
+              <Button
+                variant="primary"
+                size="md"
+                className="flex-1"
+                onClick={() => router.push('/login')}
+              >
+                로그인
+              </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                className="flex-1"
+                onClick={() => router.push('/register')}
+              >
+                회원가입
+              </Button>
+            </div>
           </div>
         )}
       </Card>

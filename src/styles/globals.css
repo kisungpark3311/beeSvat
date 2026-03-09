@@ -70,3 +70,52 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ===== 다크 모드 ===== */
+.dark {
+  --color-primary: #5b9bd5;
+  --color-primary-light: #1e2d3d;
+  --color-primary-hover: #7ab3e8;
+  --color-secondary: #6db87d;
+  --color-secondary-light: #1e2e22;
+  --color-accent: #d4a62a;
+  --color-accent-light: #2e2810;
+  --color-surface: #1e1e2e;
+  --color-background: #121218;
+  --color-text-primary: #e8e8f0;
+  --color-text-secondary: #9ca3af;
+  --color-border: #2e2e3e;
+
+  --color-syntax-verb: #5b9bd5;
+  --color-syntax-verb-bg: #1e2d3d;
+  --color-syntax-modifier: #6db87d;
+  --color-syntax-modifier-bg: #1e2e22;
+  --color-syntax-connector: #d4a62a;
+  --color-syntax-connector-bg: #2e2810;
+  --color-syntax-adverb: #a78bca;
+  --color-syntax-adverb-bg: #2a2040;
+}
+
+/* ===== 글꼴 크기 ===== */
+.font-small {
+  font-size: 14px;
+}
+.font-medium {
+  font-size: 16px;
+}
+.font-large {
+  font-size: 18px;
+}
+
+/* ===== 레이아웃 포지션 ===== */
+.layout-center .layout-main {
+  max-width: var(--max-width-screen-xl);
+}
+.layout-left .layout-main {
+  max-width: var(--max-width-screen-xl);
+  margin-left: 0;
+  margin-right: auto;
+}
+.layout-wide .layout-main {
+  max-width: 100%;
+}

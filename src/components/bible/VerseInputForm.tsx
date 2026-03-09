@@ -36,8 +36,11 @@ export default function VerseInputForm() {
       try {
         const result = await getPassage(book, chapter, verseStart, verseEnd);
         setPassageText(result.fullText);
+        setFormError(null);
       } catch {
-        // 자동 조회 실패 시 수동 입력 안내 (에러 표시하지 않음)
+        setFormError(
+          `'${book} ${chapter}장'의 해당 절을 찾을 수 없습니다. 책명과 장/절 번호를 확인해주세요.`,
+        );
         setPassageText('');
       } finally {
         setIsFetching(false);
@@ -177,7 +180,8 @@ export default function VerseInputForm() {
         label="본문"
         placeholder={isFetching ? '본문 조회 중...' : '본문 조회 버튼 또는 직접 입력'}
         name="passageText"
-        rows={1}
+        rows={6}
+        className="min-h-[9rem] resize-y"
         value={passageText}
         onChange={(e) => setPassageText(e.target.value)}
       />

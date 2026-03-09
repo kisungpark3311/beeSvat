@@ -1,8 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'zod';
 import { aiConfig } from '@/server/config/ai.config';
-import { buildAnalysisPromptV2 } from '@/server/prompts/analysis-v2.prompt';
+import {
+  buildAnalysisPromptPart1,
+  buildAnalysisPromptPart2,
+} from '@/server/prompts/analysis-v2.prompt';
 import type {
   AnalysisStructure,
   MainVerb,
@@ -132,22 +136,55 @@ export interface AnalysisAIResult {
 async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<string> {
   const client = new Anthropic({ apiKey: aiConfig.anthropicApiKey });
 
-  const response = await client.messages.create({
-    model: aiConfig.anthropicModel,
-    max_tokens: aiConfig.maxTokens,
-    temperature: aiConfig.temperature,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
-  });
+  const stream = await client.messages.stream(
+    {
+      model: aiConfig.anthropicModel,
+      max_tokens: aiConfig.maxTokens,
+      temperature: aiConfig.temperature,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    },
+    {
+      headers: {
+        'anthropic-beta': 'output-128k-2025-02-19',
+      },
+    },
+  );
 
+  const response = await stream.finalMessage();
+  console.log(
+    `[AI] stop_reason=${response.stop_reason}, usage=${JSON.stringify(response.usage)}, model=${response.model}`,
+  );
+  if (response.stop_reason === 'max_tokens') {
+    console.warn(`[AI] 응답이 max_tokens(${aiConfig.maxTokens})에서 잘렸습니다.`);
+  }
   const block = response.content[0];
   if (!block || block.type !== 'text') {
     throw new Error('AI 응답이 비어있습니다');
   }
+  console.log(`[AI] 응답 길이: ${block.text.length}자`);
   return block.text;
 }
 
-// OpenAI 호출 (fallback)
+// Google Gemini 호출
+async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
+  const genAI = new GoogleGenerativeAI(aiConfig.geminiApiKey);
+  const model = genAI.getGenerativeModel({
+    model: aiConfig.geminiModel,
+    systemInstruction: systemPrompt,
+    generationConfig: {
+      temperature: aiConfig.temperature,
+      maxOutputTokens: aiConfig.maxTokens,
+      responseMimeType: 'application/json',
+    },
+  });
+  const result = await model.generateContent(userPrompt);
+  const text = result.response.text();
+  if (!text) throw new Error('AI 응답이 비어있습니다');
+  return text;
+}
+
+// OpenAI 호출
 async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<string> {
   const openai = new OpenAI({ apiKey: aiConfig.openaiApiKey });
 
@@ -169,6 +206,101 @@ async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<str
   return content;
 }
 
+// ZhipuAI GLM 호출 (OpenAI 호환 API)
+async function callGLM(systemPrompt: string, userPrompt: string): Promise<string> {
+  const glm = new OpenAI({
+    apiKey: aiConfig.glmApiKey,
+    baseURL: aiConfig.glmBaseUrl,
+  });
+
+  const completion = await glm.chat.completions.create({
+    model: aiConfig.glmModel,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    max_tokens: aiConfig.maxTokens,
+    temperature: aiConfig.temperature,
+  });
+
+  const content = completion.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error('AI 응답이 비어있습니다');
+  }
+  return content;
+}
+
+async function callProvider(systemPrompt: string, userPrompt: string): Promise<string> {
+  if (aiConfig.provider === 'anthropic') {
+    return callAnthropic(systemPrompt, userPrompt);
+  } else if (aiConfig.provider === 'gemini') {
+    return callGemini(systemPrompt, userPrompt);
+  } else if (aiConfig.provider === 'glm') {
+    return callGLM(systemPrompt, userPrompt);
+  } else {
+    return callOpenAI(systemPrompt, userPrompt);
+  }
+}
+
+function repairJSON(str: string): string {
+  // JSON 문자열 내부의 리터럴 줄바꿈을 \n으로 이스케이프
+  let inString = false;
+  let escaped = false;
+  let result = '';
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      result += ch;
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      result += ch;
+      continue;
+    }
+    if (inString && ch === '\n') {
+      result += '\\n';
+      continue;
+    }
+    if (inString && ch === '\r') {
+      result += '\\r';
+      continue;
+    }
+    if (inString && ch === '\t') {
+      result += '\\t';
+      continue;
+    }
+    result += ch;
+  }
+  return result;
+}
+
+function extractJSON(content: string): unknown {
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('AI 응답에서 JSON을 찾을 수 없습니다');
+  }
+  const raw = jsonMatch[0];
+  try {
+    return JSON.parse(raw);
+  } catch (e1) {
+    console.warn(`[AI] JSON 파싱 1차 실패: ${e1 instanceof Error ? e1.message : e1}`);
+    console.warn(`[AI] 응답 마지막 200자: ...${raw.slice(-200)}`);
+    try {
+      return JSON.parse(repairJSON(raw));
+    } catch (e2) {
+      console.error(`[AI] JSON 파싱 2차(repair) 실패: ${e2 instanceof Error ? e2.message : e2}`);
+      throw e2;
+    }
+  }
+}
+
 export async function analyzePassage(
   passageText: string,
   book: string,
@@ -177,29 +309,19 @@ export async function analyzePassage(
   verseEnd: number,
 ): Promise<AnalysisAIResult> {
   const startTime = Date.now();
-  const { systemPrompt, userPrompt } = buildAnalysisPromptV2(
-    passageText,
-    book,
-    chapter,
-    verseStart,
-    verseEnd,
-  );
 
-  let content: string;
-  if (aiConfig.provider === 'anthropic') {
-    content = await callAnthropic(systemPrompt, userPrompt);
-  } else {
-    content = await callOpenAI(systemPrompt, userPrompt);
-  }
+  // 1차 호출: 구문 분석 (structure, explanation, mainVerbs, modifiers, connectors)
+  const part1 = buildAnalysisPromptPart1(passageText, book, chapter, verseStart, verseEnd);
+  const content1 = await callProvider(part1.systemPrompt, part1.userPrompt);
+  const parsed1 = extractJSON(content1);
 
-  // Claude는 JSON 앞뒤에 텍스트가 있을 수 있으므로 추출
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('AI 응답에서 JSON을 찾을 수 없습니다');
-  }
+  // 2차 호출: 묵상 (observation, interpretation, application, theologicalReflection, prayerDedication)
+  const part2 = buildAnalysisPromptPart2(passageText, book, chapter, verseStart, verseEnd);
+  const content2 = await callProvider(part2.systemPrompt, part2.userPrompt);
+  const parsed2 = extractJSON(content2);
 
-  const parsed = JSON.parse(jsonMatch[0]);
-  const validated = aiResponseSchema.parse(parsed);
+  const merged = { ...(parsed1 as object), ...(parsed2 as object) };
+  const validated = aiResponseSchema.parse(merged);
 
   return {
     ...validated,
