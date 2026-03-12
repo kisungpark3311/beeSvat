@@ -323,7 +323,7 @@ function extractJSON(content: string): unknown {
     // position 주변 문자 확인
     const match = String(e1 instanceof Error ? e1.message : e1).match(/position (\d+)/);
     if (match) {
-      const pos = parseInt(match[1]);
+      const pos = parseInt(match[1]!);
       console.warn(
         `[AI] 에러 위치 주변(${pos - 20}~${pos + 20}): ${JSON.stringify(raw.slice(Math.max(0, pos - 20), pos + 20))}`,
       );
