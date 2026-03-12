@@ -18,6 +18,7 @@ export default function MeditationPageClient() {
   const fetchMeditations = useCallback(
     (page = 1) => {
       setLoading(true);
+      setError(null);
       listMeditations(accessToken ?? null, page)
         .then((res) => {
           setMeditations(res.data, res.meta);
@@ -33,8 +34,23 @@ export default function MeditationPageClient() {
   );
 
   useEffect(() => {
-    fetchMeditations();
-  }, [fetchMeditations]);
+    let stale = false;
+    setLoading(true);
+    setError(null);
+    listMeditations(accessToken ?? null)
+      .then((res) => {
+        if (!stale) setMeditations(res.data, res.meta);
+      })
+      .catch((err: Error) => {
+        if (!stale) setError(err.message);
+      })
+      .finally(() => {
+        if (!stale) setLoading(false);
+      });
+    return () => {
+      stale = true;
+    };
+  }, [accessToken, setMeditations, setLoading, setError]);
 
   if (error) {
     return (

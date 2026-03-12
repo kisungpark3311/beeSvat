@@ -1,16 +1,80 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { logoutUser } from '@/services/authService';
+import {
+  useSettingsStore,
+  type Theme,
+  type FontSize,
+  type LayoutPosition,
+} from '@/stores/settingsStore';
 import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: 'light', label: '라이트' },
+  { value: 'dark', label: '다크' },
+];
+
+const FONT_SIZE_OPTIONS: { value: FontSize; label: string }[] = [
+  { value: 'small', label: '작게' },
+  { value: 'medium', label: '보통' },
+  { value: 'large', label: '크게' },
+];
+
+const LAYOUT_OPTIONS: { value: LayoutPosition; label: string }[] = [
+  { value: 'left', label: '왼쪽' },
+  { value: 'center', label: '중앙' },
+  { value: 'wide', label: '넓게' },
+];
+
+function ToggleGroup<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-xs">
+      <span className="text-sm font-medium text-text-secondary">{label}</span>
+      <div className="flex rounded-md border border-border overflow-hidden">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            className={`flex-1 px-sm py-xs text-sm font-medium transition-colors ${
+              value === opt.value
+                ? 'bg-primary text-white'
+                : 'bg-surface text-text-secondary hover:bg-primary-light'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user, isAuthenticated, refreshToken, clearAuth } = useAuthStore();
+  const { theme, fontSize, layoutPosition, setTheme, setFontSize, setLayoutPosition } =
+    useSettingsStore();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -71,6 +135,27 @@ export default function SettingsPage() {
           </div>
         )}
       </Card>
+
+      {mounted && (
+        <Card className="w-full max-w-2xl">
+          <h2 className="mb-md text-lg font-semibold text-text-primary">화면 설정</h2>
+          <div className="flex flex-col gap-md">
+            <ToggleGroup label="테마" options={THEME_OPTIONS} value={theme} onChange={setTheme} />
+            <ToggleGroup
+              label="글꼴 크기"
+              options={FONT_SIZE_OPTIONS}
+              value={fontSize}
+              onChange={setFontSize}
+            />
+            <ToggleGroup
+              label="레이아웃"
+              options={LAYOUT_OPTIONS}
+              value={layoutPosition}
+              onChange={setLayoutPosition}
+            />
+          </div>
+        </Card>
+      )}
 
       <Card className="w-full max-w-2xl">
         <h2 className="mb-md text-lg font-semibold text-text-primary">앱 정보</h2>

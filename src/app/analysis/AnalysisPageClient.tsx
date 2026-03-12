@@ -36,17 +36,22 @@ export default function AnalysisPageClient() {
   } = useAnalysisStore();
 
   useEffect(() => {
+    let stale = false;
     setLoading(true);
+    setError(null);
     listAnalyses(accessToken ?? null)
       .then((res) => {
-        setAnalyses(res.items, res.meta);
+        if (!stale) setAnalyses(res.items, res.meta);
       })
       .catch((err: Error) => {
-        setError(err.message);
+        if (!stale) setError(err.message);
       })
       .finally(() => {
-        setLoading(false);
+        if (!stale) setLoading(false);
       });
+    return () => {
+      stale = true;
+    };
   }, [accessToken, setAnalyses, setLoading, setError]);
 
   const handleDelete = useCallback(

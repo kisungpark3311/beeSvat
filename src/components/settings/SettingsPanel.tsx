@@ -86,7 +86,7 @@ export default function SettingsPanel() {
   if (!mounted) return null;
 
   return (
-    <div ref={panelRef} className="fixed bottom-20 left-4 z-50 md:bottom-6">
+    <div ref={panelRef} className="fixed bottom-20 left-4 z-40 hidden md:block md:bottom-6">
       {isOpen && (
         <div className="mb-2 w-56 rounded-lg border border-border bg-surface p-md shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
           <h3 className="mb-md text-sm font-semibold text-text-primary">설정</h3>
