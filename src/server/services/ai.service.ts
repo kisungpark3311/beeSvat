@@ -281,17 +281,53 @@ function repairJSON(str: string): string {
   return result;
 }
 
-function extractJSON(content: string): unknown {
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('AI 응답에서 JSON을 찾을 수 없습니다');
+function findBalancedJSON(content: string): string {
+  const start = content.indexOf('{');
+  if (start === -1) throw new Error('AI 응답에서 JSON을 찾을 수 없습니다');
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < content.length; i++) {
+    const ch = content[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\' && inString) {
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (ch === '{') depth++;
+    if (ch === '}') {
+      depth--;
+      if (depth === 0) return content.slice(start, i + 1);
+    }
   }
-  const raw = jsonMatch[0];
+  return content.slice(start);
+}
+
+function extractJSON(content: string): unknown {
+  const raw = findBalancedJSON(content);
+  console.log(
+    `[AI] extractJSON: raw 길이=${raw.length}, 첫 50자=${raw.slice(0, 50)}, 마지막 50자=${raw.slice(-50)}`,
+  );
   try {
     return JSON.parse(raw);
   } catch (e1) {
     console.warn(`[AI] JSON 파싱 1차 실패: ${e1 instanceof Error ? e1.message : e1}`);
-    console.warn(`[AI] 응답 마지막 200자: ...${raw.slice(-200)}`);
+    // position 주변 문자 확인
+    const match = String(e1 instanceof Error ? e1.message : e1).match(/position (\d+)/);
+    if (match) {
+      const pos = parseInt(match[1]);
+      console.warn(
+        `[AI] 에러 위치 주변(${pos - 20}~${pos + 20}): ${JSON.stringify(raw.slice(Math.max(0, pos - 20), pos + 20))}`,
+      );
+    }
     try {
       return JSON.parse(repairJSON(raw));
     } catch (e2) {
@@ -331,10 +367,12 @@ export async function analyzePassage(
 }
 
 export function parseAIResponse(content: string) {
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('AI 응답에서 JSON을 찾을 수 없습니다');
+  const raw = findBalancedJSON(content);
+  try {
+    const parsed = JSON.parse(raw);
+    return aiResponseSchema.parse(parsed);
+  } catch {
+    const parsed = JSON.parse(repairJSON(raw));
+    return aiResponseSchema.parse(parsed);
   }
-  const parsed = JSON.parse(jsonMatch[0]);
-  return aiResponseSchema.parse(parsed);
 }

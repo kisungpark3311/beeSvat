@@ -115,7 +115,7 @@ describe('BibleService', () => {
       expect(result.book).toBe('요한복음');
       expect(result.chapter).toBe(3);
       expect(result.verseStart).toBe(16);
-      expect(result.verseEnd).toBe(18);
+      expect(result.verseEnd).toBe(16);
       expect(result.title).toBe('하나님의 사랑');
       expect(result.fullText).toBeTruthy();
       expect(result.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);

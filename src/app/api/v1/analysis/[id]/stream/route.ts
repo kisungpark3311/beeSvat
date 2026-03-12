@@ -59,12 +59,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const stream = new ReadableStream({
       start(controller) {
         const encoder = new TextEncoder();
+        // JSON.stringify 결과를 단일 data: 라인으로 전송 (줄바꿈 없음 보장)
         const json = JSON.stringify(completed);
-        const lines = json
-          .split('\n')
-          .map((line) => `data: ${line}`)
-          .join('\n');
-        controller.enqueue(encoder.encode(`event: result\n${lines}\n\n`));
+        controller.enqueue(encoder.encode(`event: result\ndata: ${json}\n\n`));
         controller.close();
       },
     });
