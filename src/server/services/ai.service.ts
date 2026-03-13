@@ -391,7 +391,26 @@ export async function analyzePassage(
   const content2 = await callProvider(part2.systemPrompt, part2.userPrompt);
   const parsed2 = extractJSON(content2);
 
-  const merged = { ...(parsed1 as object), ...(parsed2 as object) };
+  // Part1 필드를 Part2가 덮어쓰지 않도록 선택적 병합
+  const p1 = parsed1 as Record<string, unknown>;
+  const p2 = parsed2 as Record<string, unknown>;
+  const part1Keys = ['structure', 'explanation', 'mainVerbs', 'modifiers', 'connectors'];
+  const part2Keys = [
+    'observation',
+    'interpretation',
+    'application',
+    'theologicalReflection',
+    'prayerDedication',
+  ];
+  const merged: Record<string, unknown> = {};
+  // Part1 전용 필드는 Part1에서만 가져옴
+  for (const key of part1Keys) {
+    if (p1[key] !== undefined) merged[key] = p1[key];
+  }
+  // Part2 전용 필드는 Part2에서만 가져옴
+  for (const key of part2Keys) {
+    if (p2[key] !== undefined) merged[key] = p2[key];
+  }
   const validated = aiResponseSchema.parse(merged);
 
   return {
