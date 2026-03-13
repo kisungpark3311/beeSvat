@@ -70,16 +70,42 @@ const aiResponseSchema = z.object({
         original: z.string().default(''),
         transliteration: z.string().optional(),
         strongs: z.string().default(''),
-        parsing: z
-          .object({
-            mood: z.string().default(''),
-            tense: z.string().default(''),
-            voice: z.string().default(''),
-            personNumber: z.string().default(''),
-            morphCode: z.string().default(''),
-            specialForm: z.string().optional(),
-          })
-          .optional(),
+        parsing: z.preprocess(
+          (val) => {
+            if (!val || typeof val !== 'object') return undefined;
+            const obj = val as Record<string, unknown>;
+            return {
+              mood: String(
+                obj.mood ??
+                  obj['법'] ??
+                  obj['법(Mood)'] ??
+                  obj.binyan ??
+                  obj['어간'] ??
+                  obj['어간(Binyan)'] ??
+                  '',
+              ),
+              tense: String(obj.tense ?? obj['시상'] ?? obj['시상(Tense)'] ?? ''),
+              voice: String(obj.voice ?? obj['태'] ?? obj['태(Voice)'] ?? ''),
+              personNumber: String(
+                obj.personNumber ?? obj['인칭/수'] ?? obj.person ?? obj['인칭'] ?? '',
+              ),
+              morphCode: String(
+                obj.morphCode ?? obj['BLB 모폴로지'] ?? obj.blb ?? obj.morphology ?? '',
+              ),
+              specialForm: obj.specialForm ? String(obj.specialForm) : undefined,
+            };
+          },
+          z
+            .object({
+              mood: z.string(),
+              tense: z.string(),
+              voice: z.string(),
+              personNumber: z.string(),
+              morphCode: z.string(),
+              specialForm: z.string().optional(),
+            })
+            .optional(),
+        ),
         theologicalImplication: z.string().optional(),
         contextualMeaning: z.string().optional(),
         modernKorean: z.string().optional(),
