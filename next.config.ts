@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   outputFileTracingRoot: __dirname,
+  devIndicators: false,
 
   images: {
     formats: ['image/avif', 'image/webp'],
