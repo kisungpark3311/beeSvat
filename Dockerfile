@@ -51,6 +51,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
+# 성경 데이터 JSON (본문 조회용)
+COPY --from=builder /app/src/data/bible-data.json ./bible-data.json
 # Prisma 런타임 의존성 전체 (자동 수집)
 COPY --from=builder /prisma-deps/node_modules ./node_modules
 

@@ -7,9 +7,31 @@ import type {
   TodayQTResponse,
 } from '@contracts/bible.contract';
 
-// FEAT-4: Bible Text service - 700_Ko_Bible MD 파일 우선, SAMPLE_VERSES 폴백
+// FEAT-4: Bible Text service - JSON 번들 우선, 700_Ko_Bible MD 폴백, SAMPLE_VERSES 최종 폴백
 
-// 700_Ko_Bible 폴더 경로 (프로젝트 루트 기준 상대 경로 또는 env 변수)
+// 1순위: 빌드 시 생성된 bible-data.json (배포 환경에서도 동작)
+type BibleData = Record<string, Record<string, Record<string, string>>>;
+let bundledBibleData: BibleData | null = null;
+
+function loadBundledBible(): BibleData | null {
+  if (bundledBibleData !== null) return bundledBibleData;
+  const jsonPath = path.join(process.cwd(), 'src', 'data', 'bible-data.json');
+  if (fs.existsSync(jsonPath)) {
+    bundledBibleData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8')) as BibleData;
+    console.log('[Bible] bible-data.json 로드 완료');
+    return bundledBibleData;
+  }
+  // Next.js standalone 빌드에서는 .next/server 기준으로 찾기
+  const altPath = path.join(process.cwd(), 'bible-data.json');
+  if (fs.existsSync(altPath)) {
+    bundledBibleData = JSON.parse(fs.readFileSync(altPath, 'utf-8')) as BibleData;
+    console.log('[Bible] bible-data.json (alt) 로드 완료');
+    return bundledBibleData;
+  }
+  return null;
+}
+
+// 2순위: 700_Ko_Bible 폴더 (로컬 개발 환경)
 const BIBLE_FILES_DIR =
   process.env.BIBLE_FILES_DIR ?? path.join(process.cwd(), '..', '..', '700_Ko_Bible');
 
@@ -20,7 +42,6 @@ function findChapterFilePath(bookName: string, chapter: number): string | null {
   if (!bookDir) return null;
   const bookPath = path.join(BIBLE_FILES_DIR, bookDir.name);
   const files = fs.readdirSync(bookPath);
-  // 파일명 패턴: 한글약자 + 장번호 + .md (예: 마20.md, 고전5.md)
   const chapterFile = files.find((f) => {
     const m = f.match(/^[가-힣]+(\d+)\.md$/);
     return m != null && parseInt(m[1]!) === chapter;
@@ -48,9 +69,12 @@ function parseChapterVerses(filePath: string): Record<number, string> {
         !t.startsWith('#') &&
         !t.startsWith('◁') &&
         !t.startsWith('*') &&
-        !t.startsWith('[[')
+        !t.startsWith('[[') &&
+        !t.startsWith('||')
       ) {
-        currentLines.push(t);
+        // 인라인 메타데이터 제거 (예: "텍스트 || [[시편]] | [[시2]] ▷")
+        const cleaned = t.replace(/\s*\|\|.*$/, '').trim();
+        if (cleaned) currentLines.push(cleaned);
       }
     }
   }
@@ -61,13 +85,25 @@ function parseChapterVerses(filePath: string): Record<number, string> {
 }
 
 function getChapterData(bookName: string, chapter: number): Record<number, string> | null {
-  // 1순위: 700_Ko_Bible MD 파일
+  // 1순위: 번들된 JSON 데이터 (배포 환경)
+  const bible = loadBundledBible();
+  if (bible) {
+    const chapterData = bible[bookName]?.[String(chapter)];
+    if (chapterData) {
+      const result: Record<number, string> = {};
+      for (const [v, text] of Object.entries(chapterData)) {
+        result[Number(v)] = text;
+      }
+      return result;
+    }
+  }
+  // 2순위: 700_Ko_Bible MD 파일 (로컬 개발)
   const filePath = findChapterFilePath(bookName, chapter);
   if (filePath) {
     const verses = parseChapterVerses(filePath);
     if (Object.keys(verses).length > 0) return verses;
   }
-  // 2순위: 하드코딩된 SAMPLE_VERSES
+  // 3순위: 하드코딩된 SAMPLE_VERSES
   return SAMPLE_VERSES[bookName]?.[chapter] ?? null;
 }
 

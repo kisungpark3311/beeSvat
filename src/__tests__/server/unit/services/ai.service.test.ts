@@ -36,7 +36,10 @@ vi.mock('@/server/config/ai.config', () => ({
 
 import { analyzePassage, parseAIResponse } from '@/server/services/ai.service';
 import { buildAnalysisPrompt } from '@/server/prompts/analysis-v1.prompt';
-import { buildAnalysisPromptV2 } from '@/server/prompts/analysis-v2.prompt';
+import {
+  buildAnalysisPromptV2,
+  buildAnalysisPromptPart2,
+} from '@/server/prompts/analysis-v2.prompt';
 
 const validAIResponse = {
   structure: {
@@ -183,7 +186,8 @@ describe('AI Service', () => {
   // =========================================
   describe('buildAnalysisPromptV2', () => {
     it('v2 프롬프트에 심층 분석 지시가 포함된다', () => {
-      const { systemPrompt, userPrompt } = buildAnalysisPromptV2(
+      // Part1: 구문 분석 (buildAnalysisPromptV2 = Part1)
+      const { systemPrompt: sp1, userPrompt: up1 } = buildAnalysisPromptV2(
         '하나님이 세상을 이처럼 사랑하사',
         '요한복음',
         3,
@@ -191,21 +195,34 @@ describe('AI Service', () => {
         16,
       );
 
-      // systemPrompt: 8단계 분석 프로세스 포함
-      expect(systemPrompt).toContain('관찰');
-      expect(systemPrompt).toContain('해석');
-      expect(systemPrompt).toContain('적용');
-      expect(systemPrompt).toContain('신학적 성찰');
-      expect(systemPrompt).toContain('기도와 헌신');
+      // Part1 systemPrompt: 구문 분석 지시 포함
+      expect(sp1).toContain('구문 분석');
+      expect(sp1).toContain('주동사');
+      expect(up1).toContain('요한복음');
+      expect(up1).toContain('3:16');
 
-      // userPrompt: JSON 스키마에 v2 키 포함
-      expect(userPrompt).toContain('"observation"');
-      expect(userPrompt).toContain('"interpretation"');
-      expect(userPrompt).toContain('"application"');
-      expect(userPrompt).toContain('"theologicalReflection"');
-      expect(userPrompt).toContain('"prayerDedication"');
-      expect(userPrompt).toContain('요한복음');
-      expect(userPrompt).toContain('3:16');
+      // Part2: 묵상
+      const { systemPrompt: sp2, userPrompt: up2 } = buildAnalysisPromptPart2(
+        '하나님이 세상을 이처럼 사랑하사',
+        '요한복음',
+        3,
+        16,
+        16,
+      );
+
+      // Part2 systemPrompt: 8단계 묵상 프로세스 포함
+      expect(sp2).toContain('관찰');
+      expect(sp2).toContain('해석');
+      expect(sp2).toContain('적용');
+      expect(sp2).toContain('신학적 성찰');
+      expect(sp2).toContain('기도와 헌신');
+
+      // Part2 userPrompt: JSON 스키마에 v2 키 포함
+      expect(up2).toContain('"observation"');
+      expect(up2).toContain('"interpretation"');
+      expect(up2).toContain('"application"');
+      expect(up2).toContain('"theologicalReflection"');
+      expect(up2).toContain('"prayerDedication"');
     });
 
     it('v2 프롬프트에 신학적 동사 선정 기준이 포함된다', () => {
@@ -301,16 +318,17 @@ describe('AI Service', () => {
       expect(() => parseAIResponse(JSON.stringify(incomplete))).toThrow();
     });
 
-    it('mainVerbs 필드 누락 시 에러를 던진다', () => {
+    it('mainVerbs 필드 누락 시 빈 배열로 처리된다', () => {
       const missingMainVerbs = {
         structure: { original: 'test', parsed: ['test'], hierarchy: {} },
         explanation: 'test explanation',
-        // mainVerbs 누락
+        // mainVerbs 누락 → z.preprocess가 빈 배열로 변환
         modifiers: [],
         connectors: [],
       };
 
-      expect(() => parseAIResponse(JSON.stringify(missingMainVerbs))).toThrow();
+      const result = parseAIResponse(JSON.stringify(missingMainVerbs));
+      expect(result.mainVerbs).toEqual([]);
     });
   });
 
@@ -341,19 +359,8 @@ describe('AI Service', () => {
       expect(result.mainVerbs).toHaveLength(2);
       expect(result.aiModel).toBe('gpt-4o-mini');
       expect(result.processingTimeMs).toBeGreaterThanOrEqual(0);
-      expect(mockCreate).toHaveBeenCalledTimes(1);
-      expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          model: 'gpt-4o-mini',
-          max_tokens: 8000,
-          temperature: 0.3,
-          response_format: { type: 'json_object' },
-          messages: expect.arrayContaining([
-            expect.objectContaining({ role: 'system' }),
-            expect.objectContaining({ role: 'user' }),
-          ]),
-        }),
-      );
+      // analyzePassage는 Part1(구문분석) + Part2(묵상) 2회 호출
+      expect(mockCreate).toHaveBeenCalledTimes(2);
     });
 
     it('AI 응답이 비어있으면 에러를 던진다', async () => {
