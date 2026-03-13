@@ -59,17 +59,23 @@ export function buildAnalysisPromptPart1(
 
 ### 주동사 파싱 (BibleWorks 방식)
 **mainVerbs 배열에 최종 선정된 정동사 3~5개만 넣으세요. 절대 5개 초과 금지.**
-각 주동사에 반드시 포함:
+
+⚠️ **필수 필드 (반드시 모든 동사에 포함할 것)**:
+1. **strongs** (Strong's 번호): 반드시 "H" 또는 "G" 접두사 + 번호 형식 (예: "H1980", "G649", "G3004"). 절대 생략 금지.
+2. **morphCode** (BLB 모폴로지 코드): 반드시 BLB 형식으로 작성 (예: "V-AAI-3S", "V-Qal-Perf-3ms"). 절대 생략 금지.
+3. **sourceNote** (출처 표기): 반드시 "참고: Strong's [번호], BLB Morphology [코드]" 형식으로 작성. 절대 생략 금지.
+
+각 주동사에 포함할 내용:
 - 원문 (히브리어/헬라어 원어)
 - 음역 (학문적 로마자 표기)
-- Strong's 번호 (예: H1980, G649)
+- **Strong's 번호** (필수! 예: H1980, G649)
 - 파싱:
-  * 히브리어: 어간(Binyan)/시상(Tense)/태(Voice)/인칭·수/BLB 모폴로지 코드
-  * 헬라어: 법(Mood)/시상(Tense)/태(Voice)/인칭·수/BLB 모폴로지 코드
+  * 히브리어: 어간(Binyan)/시상(Tense)/태(Voice)/인칭·수/**BLB 모폴로지 코드(필수!)**
+  * 헬라어: 법(Mood)/시상(Tense)/태(Voice)/인칭·수/**BLB 모폴로지 코드(필수!)**
 - 문맥적 의미: 이 동사가 이 절에서 하는 역할 (3문장 이상)
 - 현대 한글 해석: 자연스러운 우리말 번역
 - 신학적 함의: 왜 이 파싱이 신학적으로 중요한가 (3문장 이상)
-- 출처 표기: "참고: Strong's [번호], BLB Morphology [코드]"
+- **출처 표기** (필수!): "참고: Strong's [번호], BLB Morphology [코드]"
 
 ## 좋은 분석 예시
 
@@ -116,21 +122,21 @@ ${passageText}
       "word": "한국어 동사",
       "position": 0,
       "meaning": "문맥적 의미 (1-2문장)",
-      "original": "원어",
-      "transliteration": "음역",
-      "strongs": "H1980 또는 G649",
+      "original": "원어 (헬라어 또는 히브리어)",
+      "transliteration": "음역 (로마자)",
+      "strongs": "G3004",
       "parsing": {
         "mood": "히브리어: Qal/Niphal/Piel 등 어간(Binyan) | 헬라어: 직설법/명령법/가정법/원망법",
         "tense": "히브리어: 완전형/불완전형/명령형 | 헬라어: 현재/미완료/부정과거/완료/미래",
         "voice": "능동태/수동태/중간태",
         "personNumber": "3인칭 남성 단수",
-        "morphCode": "BLB 모폴로지 코드 (예: V-Qal-Perf-3ms, V-AAI-3S)"
+        "morphCode": "V-IAI-3P"
       },
       "theologicalImplication": "신학적 함의 (1-2문장)",
       "contextualMeaning": "이 절에서의 역할 (1문장)",
       "modernKorean": "현대 한글 번역",
-      "verseReference": "절 번호",
-      "sourceNote": "참고: Strong's [번호], BLB Morphology [코드]"
+      "verseReference": "절 번호 (예: 마 22:2)",
+      "sourceNote": "참고: Strong's G3004, BLB Morphology V-IAI-3P"
     }
   ],
   "modifiers": [

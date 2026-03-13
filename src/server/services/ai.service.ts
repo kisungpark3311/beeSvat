@@ -69,14 +69,14 @@ const aiResponseSchema = z.object({
         meaning: z.string().default(''),
         original: z.string().default(''),
         transliteration: z.string().optional(),
-        strongs: z.string().optional(),
+        strongs: z.string().default(''),
         parsing: z
           .object({
             mood: z.string(),
             tense: z.string(),
             voice: z.string(),
             personNumber: z.string(),
-            morphCode: z.string().optional(),
+            morphCode: z.string().default(''),
             specialForm: z.string().optional(),
           })
           .optional(),
