@@ -30,10 +30,11 @@ export const ratingRequestSchema = z.object({
 
 // BibleWorks 스타일 동사 파싱 (svat-skill 기반)
 export interface VerbParsing {
-  mood: string; // 법: 직설법/명령법/가정법/부정사/분사
+  mood: string; // 히브리어: 어간(Binyan) Qal/Niphal/Piel 등 | 헬라어: 법(Mood) 직설법/명령법/가정법
   tense: string; // 시상: 현재/미완료/완료/미래 (헬라어) | 완전형/불완전형/명령형 (히브리어)
   voice: string; // 태: 능동태/수동태/중간태
-  personNumber: string; // 인칭/수: 3인칭 단수 등
+  personNumber: string; // 인칭/수: 3인칭 남성 단수 등
+  morphCode?: string; // BLB 모폴로지 코드 (예: V-Qal-Perf-3ms, V-AAI-3S)
   specialForm?: string; // 특수 형태 (필요시)
 }
 
@@ -43,12 +44,14 @@ export interface MainVerb {
   meaning: string;
   original: string; // 원어 (히브리어/헬라어)
   transliteration?: string; // 음역
+  strongs?: string; // Strong's 번호 (예: H1980, G649)
   parsing?: VerbParsing; // BibleWorks 파싱 테이블
   theologicalImplication?: string; // 신학적 함의
   // v2 확장 필드
   contextualMeaning?: string; // 문맥적 의미 (이 동사가 이 절에서 하는 역할)
   modernKorean?: string; // 현대 한글 해석 (자연스러운 우리말 번역)
   verseReference?: string; // 해당 절 참조 (e.g., "18:27")
+  sourceNote?: string; // 출처 표기 (예: "참고: Strong's H1980, BLB Morphology V-Qal-Perf-3ms")
 }
 
 export interface Modifier {

@@ -34,6 +34,11 @@ function VerbCard({ verb, index }: { verb: MainVerb; index: number }) {
               <strong>음역</strong>: {verb.transliteration}
             </li>
           )}
+          {verb.strongs && (
+            <li>
+              <strong>Strong&apos;s</strong>: {verb.strongs}
+            </li>
+          )}
         </ul>
       </div>
 
@@ -55,7 +60,9 @@ function VerbCard({ verb, index }: { verb: MainVerb; index: number }) {
               </thead>
               <tbody>
                 <tr className="border-b border-border">
-                  <td className="py-xs px-sm font-medium text-text-primary">법(Mood)</td>
+                  <td className="py-xs px-sm font-medium text-text-primary">
+                    법(Mood)/어간(Binyan)
+                  </td>
                   <td className="py-xs px-sm text-text-primary">{verb.parsing.mood}</td>
                 </tr>
                 <tr className="border-b border-border">
@@ -70,6 +77,22 @@ function VerbCard({ verb, index }: { verb: MainVerb; index: number }) {
                   <td className="py-xs px-sm font-medium text-text-primary">인칭/수</td>
                   <td className="py-xs px-sm text-text-primary">{verb.parsing.personNumber}</td>
                 </tr>
+                {verb.parsing.morphCode && (
+                  <tr className="border-b border-border">
+                    <td className="py-xs px-sm font-medium text-text-primary">BLB 모폴로지</td>
+                    <td className="py-xs px-sm text-text-primary font-mono text-xs">
+                      {verb.parsing.morphCode}
+                    </td>
+                  </tr>
+                )}
+                {verb.strongs && (
+                  <tr className="border-b border-border">
+                    <td className="py-xs px-sm font-medium text-text-primary">Strong&apos;s</td>
+                    <td className="py-xs px-sm text-text-primary font-mono text-xs">
+                      {verb.strongs}
+                    </td>
+                  </tr>
+                )}
                 {verb.parsing.specialForm && (
                   <tr className="border-b border-border">
                     <td className="py-xs px-sm font-medium text-text-primary">특수 형태</td>
@@ -112,11 +135,14 @@ function VerbCard({ verb, index }: { verb: MainVerb; index: number }) {
 
       {/* Theological implication */}
       {verb.theologicalImplication && (
-        <div>
+        <div className="mb-md">
           <h5 className="mb-xs text-sm font-semibold text-text-primary">신학적 함의</h5>
           <p className="text-sm text-text-primary leading-relaxed">{verb.theologicalImplication}</p>
         </div>
       )}
+
+      {/* Source note */}
+      {verb.sourceNote && <p className="text-xs text-text-secondary italic">{verb.sourceNote}</p>}
     </div>
   );
 }
