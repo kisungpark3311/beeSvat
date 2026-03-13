@@ -82,14 +82,24 @@ export default function TodayQT({ onAnalyze, isAnalyzing }: TodayQTProps) {
 
   if (!qtData) return null;
 
-  const verses: BibleVerse[] = [
-    {
-      book: qtData.book,
-      chapter: qtData.chapter,
-      verse: qtData.verseStart,
-      text: qtData.fullText,
-    },
-  ];
+  const lines = qtData.fullText.split('\n');
+  const verseCount = qtData.verseEnd - qtData.verseStart + 1;
+  const verses: BibleVerse[] =
+    verseCount > 1 && lines.length === verseCount
+      ? lines.map((text, i) => ({
+          book: qtData.book,
+          chapter: qtData.chapter,
+          verse: qtData.verseStart + i,
+          text,
+        }))
+      : [
+          {
+            book: qtData.book,
+            chapter: qtData.chapter,
+            verse: qtData.verseStart,
+            text: qtData.fullText,
+          },
+        ];
 
   return (
     <div className="rounded-lg border border-border bg-surface p-sm">
