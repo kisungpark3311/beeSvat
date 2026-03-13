@@ -133,24 +133,26 @@ const aiResponseSchema = z.object({
   // v2: observation/interpretation/application은 필수로 요청하되 Zod에서는 optional 유지 (하위호환)
   observation: z
     .object({
-      structureFlow: z.string(),
-      keywords: z.array(z.object({ word: z.string(), count: z.number(), meaning: z.string() })),
-      context: z.string(),
-      parallelPassages: z.array(z.string()),
+      structureFlow: z.string().default(''),
+      keywords: z
+        .array(z.object({ word: z.string(), count: z.number().default(0), meaning: z.string() }))
+        .default([]),
+      context: z.string().default(''),
+      parallelPassages: z.array(z.string()).default([]),
     })
     .optional(),
   interpretation: z
     .object({
-      theologicalMessage: z.string(),
-      historicalBackground: z.string(),
-      redemptiveHistory: z.string(),
+      theologicalMessage: z.string().default(''),
+      historicalBackground: z.string().default(''),
+      redemptiveHistory: z.string().default(''),
     })
     .optional(),
   application: z
     .object({
-      principles: z.array(z.string()),
-      personalApplication: z.string(),
-      pastoralPoints: z.array(z.string()),
+      principles: z.array(z.string()).default([]),
+      personalApplication: z.string().default(''),
+      pastoralPoints: z.array(z.string()).default([]),
       practicePlan: z
         .object({
           weekly: z.array(z.string()).optional(),
@@ -164,16 +166,28 @@ const aiResponseSchema = z.object({
   // v2 신규 섹션
   theologicalReflection: z
     .object({
-      coreInsight: z.string(),
-      personalMessage: z.string(),
+      coreInsight: z.string().default(''),
+      personalMessage: z.string().default(''),
     })
     .optional(),
   prayerDedication: z
     .object({
-      thanksgiving: z.union([z.string(), z.array(z.string()).transform((arr) => arr.join('\n'))]),
-      confession: z.union([z.string(), z.array(z.string()).transform((arr) => arr.join('\n'))]),
-      intercession: z.union([z.string(), z.array(z.string()).transform((arr) => arr.join('\n'))]),
-      dedication: z.union([z.string(), z.array(z.string()).transform((arr) => arr.join('\n'))]),
+      thanksgiving: z.preprocess(
+        (v) => (Array.isArray(v) ? v.join('\n') : typeof v === 'string' ? v : ''),
+        z.string(),
+      ),
+      confession: z.preprocess(
+        (v) => (Array.isArray(v) ? v.join('\n') : typeof v === 'string' ? v : ''),
+        z.string(),
+      ),
+      intercession: z.preprocess(
+        (v) => (Array.isArray(v) ? v.join('\n') : typeof v === 'string' ? v : ''),
+        z.string(),
+      ),
+      dedication: z.preprocess(
+        (v) => (Array.isArray(v) ? v.join('\n') : typeof v === 'string' ? v : ''),
+        z.string(),
+      ),
     })
     .optional(),
 });
