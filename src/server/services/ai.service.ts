@@ -453,11 +453,127 @@ export async function analyzePassage(
   }
   const validated = aiResponseSchema.parse(merged);
 
+  // 후처리: AI가 strongs/morphCode를 누락한 경우 파싱 데이터에서 자동 생성
+  for (const verb of validated.mainVerbs) {
+    // morphCode 자동 생성: 파싱 필드가 있으면 BLB 형식으로 조합
+    if (verb.parsing && !verb.parsing.morphCode) {
+      verb.parsing.morphCode = buildMorphCode(verb.parsing, verb.original);
+    }
+    // strongs를 sourceNote에서 추출 시도
+    if (!verb.strongs && verb.sourceNote) {
+      const strongsMatch = verb.sourceNote.match(/Strong's\s+([HG]\d+)/i);
+      if (strongsMatch) verb.strongs = strongsMatch[1]!;
+    }
+    // sourceNote가 없거나 불완전하면 자동 생성
+    if (verb.strongs || verb.parsing?.morphCode) {
+      const parts: string[] = [];
+      if (verb.strongs) parts.push(`Strong's ${verb.strongs}`);
+      if (verb.parsing?.morphCode) parts.push(`BLB Morphology ${verb.parsing.morphCode}`);
+      verb.sourceNote = `참고: ${parts.join(', ')}`;
+    }
+  }
+
   return {
     ...validated,
     aiModel: aiConfig.model,
     processingTimeMs: Date.now() - startTime,
   };
+}
+
+// 파싱 필드에서 BLB 모폴로지 코드 자동 생성
+function buildMorphCode(
+  parsing: { mood: string; tense: string; voice: string; personNumber: string },
+  original: string,
+): string {
+  // 히브리어 여부 판별 (히브리어 유니코드 범위)
+  const isHebrew = /[\u0590-\u05FF]/.test(original);
+
+  if (isHebrew) {
+    // 히브리어: V-Qal-Perf-3ms 형식
+    const binyan = parseHebrewBinyan(parsing.mood);
+    const tense = parseHebrewTense(parsing.tense);
+    const pn = parsePersonNumber(parsing.personNumber, true);
+    if (binyan && tense) return `V-${binyan}-${tense}-${pn}`;
+  } else {
+    // 헬라어: V-AAI-3S 형식
+    const tense = parseGreekTense(parsing.tense);
+    const voice = parseGreekVoice(parsing.voice);
+    const mood = parseGreekMood(parsing.mood);
+    const pn = parsePersonNumber(parsing.personNumber, false);
+    if (tense && voice && mood) return `V-${tense}${voice}${mood}-${pn}`;
+  }
+  return '';
+}
+
+function parseHebrewBinyan(mood: string): string {
+  const map: Record<string, string> = {
+    qal: 'Qal',
+    niphal: 'Niphal',
+    piel: 'Piel',
+    pual: 'Pual',
+    hiphil: 'Hiphil',
+    hophal: 'Hophal',
+    hithpael: 'Hithpael',
+  };
+  const lower = mood.toLowerCase();
+  for (const [key, val] of Object.entries(map)) {
+    if (lower.includes(key)) return val;
+  }
+  return mood || '';
+}
+
+function parseHebrewTense(tense: string): string {
+  if (/완전형|perfect/i.test(tense)) return 'Perf';
+  if (/불완전형|imperfect/i.test(tense)) return 'Imperf';
+  if (/명령형|imperative/i.test(tense)) return 'Impv';
+  if (/분사|participle/i.test(tense)) return 'Ptc';
+  if (/부정사|infinitive/i.test(tense)) return 'Inf';
+  return '';
+}
+
+function parseGreekTense(tense: string): string {
+  if (/부정과거|aorist/i.test(tense)) return 'A';
+  if (/현재|present/i.test(tense)) return 'P';
+  if (/미완료|imperfect/i.test(tense)) return 'I';
+  if (/완료|perfect/i.test(tense)) return 'R';
+  if (/미래|future/i.test(tense)) return 'F';
+  if (/대과거|pluperfect/i.test(tense)) return 'L';
+  return '';
+}
+
+function parseGreekVoice(voice: string): string {
+  if (/능동|active/i.test(voice)) return 'A';
+  if (/중간|middle/i.test(voice)) return 'M';
+  if (/수동|passive/i.test(voice)) return 'P';
+  return '';
+}
+
+function parseGreekMood(mood: string): string {
+  if (/직설법|indicative/i.test(mood)) return 'I';
+  if (/명령법|imperative/i.test(mood)) return 'M';
+  if (/가정법|접속법|subjunctive/i.test(mood)) return 'S';
+  if (/원망법|희구법|optative/i.test(mood)) return 'O';
+  if (/분사|participle/i.test(mood)) return 'P';
+  if (/부정사|infinitive/i.test(mood)) return 'N';
+  return '';
+}
+
+function parsePersonNumber(pn: string, isHebrew: boolean): string {
+  const personMatch = pn.match(/([123])/);
+  const person = personMatch ? personMatch[1] : '';
+
+  let number = '';
+  if (/단수|singular|sg/i.test(pn)) number = isHebrew ? 's' : 'S';
+  else if (/복수|plural|pl/i.test(pn)) number = isHebrew ? 'p' : 'P';
+
+  let gender = '';
+  if (isHebrew) {
+    if (/남성|masculine|male/i.test(pn)) gender = 'm';
+    else if (/여성|feminine|female/i.test(pn)) gender = 'f';
+    else if (/공통|common/i.test(pn)) gender = 'c';
+  }
+
+  return isHebrew ? `${person}${gender}${number}` : `${person}${number}`;
 }
 
 export function parseAIResponse(content: string) {
