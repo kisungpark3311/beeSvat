@@ -30,28 +30,49 @@ const aiResponseSchema = z.object({
     structureDiagram: z.string().optional(),
   }),
   explanation: z.string(),
-  mainVerbs: z.array(
-    z.object({
-      word: z.string(),
-      position: z.number(),
-      meaning: z.string(),
-      original: z.string(),
-      transliteration: z.string().optional(),
-      parsing: z
-        .object({
-          mood: z.string(),
-          tense: z.string(),
-          voice: z.string(),
-          personNumber: z.string(),
-          specialForm: z.string().optional(),
-        })
-        .optional(),
-      theologicalImplication: z.string().optional(),
-      // v2 확장 필드
-      contextualMeaning: z.string().optional(),
-      modernKorean: z.string().optional(),
-      verseReference: z.string().optional(),
-    }),
+  mainVerbs: z.preprocess(
+    (val) => {
+      // AI가 객체로 반환할 경우 배열로 변환
+      if (val && typeof val === 'object' && !Array.isArray(val)) {
+        const obj = val as Record<string, unknown>;
+        // 숫자 키 객체 ({"0": {...}, "1": {...}}) → 배열
+        if (Object.keys(obj).every((k) => /^\d+$/.test(k))) {
+          return Object.values(obj);
+        }
+        // 단계별 객체 (step1, step2 등) → 내부 배열 추출
+        const arrays = Object.values(obj).filter(Array.isArray);
+        if (arrays.length > 0) return arrays.flat();
+        // 단일 동사 객체 → 배열로 래핑
+        if ('word' in obj || 'original' in obj) return [obj];
+        return Object.values(obj);
+      }
+      return val;
+    },
+    z.array(
+      z.object({
+        word: z.string(),
+        position: z.number().default(0),
+        meaning: z.string(),
+        original: z.string(),
+        transliteration: z.string().optional(),
+        strongs: z.string().optional(),
+        parsing: z
+          .object({
+            mood: z.string(),
+            tense: z.string(),
+            voice: z.string(),
+            personNumber: z.string(),
+            morphCode: z.string().optional(),
+            specialForm: z.string().optional(),
+          })
+          .optional(),
+        theologicalImplication: z.string().optional(),
+        contextualMeaning: z.string().optional(),
+        modernKorean: z.string().optional(),
+        verseReference: z.string().optional(),
+        sourceNote: z.string().optional(),
+      }),
+    ),
   ),
   modifiers: z.array(
     z.object({
