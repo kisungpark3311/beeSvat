@@ -128,23 +128,21 @@ export default function AnalysisPageClient() {
                     <span className="text-xs text-accent">{item.rating}/5</span>
                   )}
                   {item.status !== 'completed' && (
-                    <>
-                      <button
-                        onClick={(e) => handleRetry(e, item.id)}
-                        className="rounded-md px-sm py-xs text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
-                        title="재분석"
-                      >
-                        재분석
-                      </button>
-                      <button
-                        onClick={(e) => handleDelete(e, item.id)}
-                        className="rounded-md px-sm py-xs text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
-                        title="삭제"
-                      >
-                        삭제
-                      </button>
-                    </>
+                    <button
+                      onClick={(e) => handleRetry(e, item.id)}
+                      className="rounded-md px-sm py-xs text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                      title="재분석"
+                    >
+                      재분석
+                    </button>
                   )}
+                  <button
+                    onClick={(e) => handleDelete(e, item.id)}
+                    className="rounded-md px-sm py-xs text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                    title="삭제"
+                  >
+                    삭제
+                  </button>
                 </div>
               </Card>
             </Link>

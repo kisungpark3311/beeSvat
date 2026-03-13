@@ -34,11 +34,9 @@ function VerbCard({ verb, index }: { verb: MainVerb; index: number }) {
               <strong>음역</strong>: {verb.transliteration}
             </li>
           )}
-          {verb.strongs && (
-            <li>
-              <strong>Strong&apos;s</strong>: {verb.strongs}
-            </li>
-          )}
+          <li>
+            <strong>Strong&apos;s</strong>: {verb.strongs || '-'}
+          </li>
         </ul>
       </div>
 
@@ -77,22 +75,18 @@ function VerbCard({ verb, index }: { verb: MainVerb; index: number }) {
                   <td className="py-xs px-sm font-medium text-text-primary">인칭/수</td>
                   <td className="py-xs px-sm text-text-primary">{verb.parsing.personNumber}</td>
                 </tr>
-                {verb.parsing.morphCode && (
-                  <tr className="border-b border-border">
-                    <td className="py-xs px-sm font-medium text-text-primary">BLB 모폴로지</td>
-                    <td className="py-xs px-sm text-text-primary font-mono text-xs">
-                      {verb.parsing.morphCode}
-                    </td>
-                  </tr>
-                )}
-                {verb.strongs && (
-                  <tr className="border-b border-border">
-                    <td className="py-xs px-sm font-medium text-text-primary">Strong&apos;s</td>
-                    <td className="py-xs px-sm text-text-primary font-mono text-xs">
-                      {verb.strongs}
-                    </td>
-                  </tr>
-                )}
+                <tr className="border-b border-border">
+                  <td className="py-xs px-sm font-medium text-text-primary">BLB 모폴로지</td>
+                  <td className="py-xs px-sm text-text-primary font-mono text-xs">
+                    {verb.parsing.morphCode || '-'}
+                  </td>
+                </tr>
+                <tr className="border-b border-border">
+                  <td className="py-xs px-sm font-medium text-text-primary">Strong&apos;s</td>
+                  <td className="py-xs px-sm text-text-primary font-mono text-xs">
+                    {verb.strongs || '-'}
+                  </td>
+                </tr>
                 {verb.parsing.specialForm && (
                   <tr className="border-b border-border">
                     <td className="py-xs px-sm font-medium text-text-primary">특수 형태</td>
