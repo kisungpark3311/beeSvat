@@ -316,15 +316,14 @@ export function searchVerses(query: string, page: number, limit: number): BibleS
 }
 
 export function getTodayQT(): TodayQTResponse {
-  // For MVP, return a hardcoded QT passage (요한복음 3:16 only)
   return {
-    book: '요한복음',
-    chapter: 3,
-    verseStart: 16,
-    verseEnd: 16,
-    title: '하나님의 사랑',
+    book: '디모데후서',
+    chapter: 2,
+    verseStart: 1,
+    verseEnd: 2,
+    title: '은혜 가운데서 강하라',
     fullText:
-      '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라',
+      '내 아들아 그러므로 너는 그리스도 예수 안에 있는 은혜 가운데서 강하고\n또 네가 많은 증인 앞에서 내게 들은 바를 충성된 사람들에게 부탁하라 그들이 또 다른 사람들을 가르칠 수 있으리라',
     date: new Date().toISOString().split('T')[0] ?? '',
   };
 }

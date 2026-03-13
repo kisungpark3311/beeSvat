@@ -3,24 +3,32 @@ export function SampleAnalysis() {
   return (
     <div className="flex flex-col gap-md w-full">
       {/* Verse reference */}
-      <p className="text-sm font-medium text-text-secondary text-center">요한복음 3:16</p>
+      <p className="text-sm font-medium text-text-secondary text-center">디모데후서 2:1-2</p>
 
       {/* Analyzed verse with syntax highlighting */}
       <div className="rounded-lg border border-border bg-surface p-md font-serif text-base leading-loose">
-        <span className="rounded-sm bg-syntax-verb-bg text-syntax-verb px-xs">하나님이</span> 세상을{' '}
-        <span className="rounded-sm bg-syntax-modifier-bg text-syntax-modifier px-xs">이처럼</span>{' '}
-        <span className="rounded-sm bg-syntax-verb-bg text-syntax-verb px-xs">사랑하사</span>{' '}
         <span className="rounded-sm bg-syntax-modifier-bg text-syntax-modifier px-xs">
-          독생자를
+          내 아들아
         </span>{' '}
-        <span className="rounded-sm bg-syntax-verb-bg text-syntax-verb px-xs">주셨으니</span>{' '}
-        <span className="rounded-sm bg-syntax-connector-bg text-syntax-connector px-xs">이는</span>{' '}
-        그를 <span className="rounded-sm bg-syntax-verb-bg text-syntax-verb px-xs">믿는</span>{' '}
-        자마다{' '}
-        <span className="rounded-sm bg-syntax-verb-bg text-syntax-verb px-xs">멸망하지 않고</span>{' '}
-        <span className="rounded-sm bg-syntax-modifier-bg text-syntax-modifier px-xs">영생을</span>{' '}
+        <span className="rounded-sm bg-syntax-connector-bg text-syntax-connector px-xs">
+          그러므로
+        </span>{' '}
+        너는{' '}
+        <span className="rounded-sm bg-syntax-modifier-bg text-syntax-modifier px-xs">
+          그리스도 예수 안에 있는 은혜 가운데서
+        </span>{' '}
+        <span className="rounded-sm bg-syntax-verb-bg text-syntax-verb px-xs">강하고</span> 또 네가{' '}
+        <span className="rounded-sm bg-syntax-modifier-bg text-syntax-modifier px-xs">
+          많은 증인 앞에서
+        </span>{' '}
+        내게 <span className="rounded-sm bg-syntax-verb-bg text-syntax-verb px-xs">들은</span> 바를{' '}
+        <span className="rounded-sm bg-syntax-modifier-bg text-syntax-modifier px-xs">
+          충성된 사람들에게
+        </span>{' '}
+        <span className="rounded-sm bg-syntax-verb-bg text-syntax-verb px-xs">부탁하라</span> 그들이
+        또 다른 사람들을{' '}
         <span className="rounded-sm bg-syntax-verb-bg text-syntax-verb px-xs">
-          얻게 하려 하심이라
+          가르칠 수 있으리라
         </span>
       </div>
 

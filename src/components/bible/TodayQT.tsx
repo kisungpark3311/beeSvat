@@ -98,6 +98,7 @@ export default function TodayQT({ onAnalyze, isAnalyzing }: TodayQTProps) {
           <h2 className="text-lg font-semibold text-text-primary">{qtData.title}</h2>
           <p className="text-xs text-text-secondary">
             {qtData.book} {qtData.chapter}:{qtData.verseStart}
+            {qtData.verseEnd > qtData.verseStart ? `-${qtData.verseEnd}` : ''}
             <span className="ml-2">{qtData.date}</span>
           </p>
         </div>

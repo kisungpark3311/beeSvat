@@ -41,7 +41,7 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center gap-sm py-sm">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-primary">beeSvat</h1>
+        <h1 className="text-2xl font-bold text-primary">BeeSvat</h1>
         <p className="text-xs text-text-secondary">
           성경 구절을 입력하면 구문 구조를 자동으로 분석합니다
         </p>

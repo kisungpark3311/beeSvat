@@ -112,11 +112,11 @@ describe('BibleService', () => {
     it('오늘의 QT를 반환한다', () => {
       const result = getTodayQT();
 
-      expect(result.book).toBe('요한복음');
-      expect(result.chapter).toBe(3);
-      expect(result.verseStart).toBe(16);
-      expect(result.verseEnd).toBe(16);
-      expect(result.title).toBe('하나님의 사랑');
+      expect(result.book).toBe('디모데후서');
+      expect(result.chapter).toBe(2);
+      expect(result.verseStart).toBe(1);
+      expect(result.verseEnd).toBe(2);
+      expect(result.title).toBe('은혜 가운데서 강하라');
       expect(result.fullText).toBeTruthy();
       expect(result.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
