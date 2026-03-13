@@ -86,7 +86,7 @@ export default function SettingsPanel() {
   if (!mounted) return null;
 
   return (
-    <div ref={panelRef} className="fixed bottom-20 left-4 z-40 hidden md:block md:bottom-6">
+    <div ref={panelRef} className="fixed bottom-4 left-4 z-40 hidden md:block">
       {isOpen && (
         <div className="mb-2 w-56 rounded-lg border border-border bg-surface p-md shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
           <h3 className="mb-md text-sm font-semibold text-text-primary">설정</h3>
@@ -110,7 +110,7 @@ export default function SettingsPanel() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white shadow-md hover:bg-primary-hover transition-colors"
+        className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/80 text-white shadow-md hover:bg-primary transition-all opacity-60 hover:opacity-100"
         aria-label="설정 열기"
       >
         <svg
