@@ -72,10 +72,10 @@ const aiResponseSchema = z.object({
         strongs: z.string().default(''),
         parsing: z
           .object({
-            mood: z.string(),
-            tense: z.string(),
-            voice: z.string(),
-            personNumber: z.string(),
+            mood: z.string().default(''),
+            tense: z.string().default(''),
+            voice: z.string().default(''),
+            personNumber: z.string().default(''),
             morphCode: z.string().default(''),
             specialForm: z.string().optional(),
           })
