@@ -455,22 +455,38 @@ export async function analyzePassage(
 
   // 후처리: AI가 strongs/morphCode를 누락한 경우 파싱 데이터에서 자동 생성
   for (const verb of validated.mainVerbs) {
-    // morphCode 자동 생성: 파싱 필드가 있으면 BLB 형식으로 조합
-    if (verb.parsing && !verb.parsing.morphCode) {
-      verb.parsing.morphCode = buildMorphCode(verb.parsing, verb.original);
+    console.log(
+      `[AI] 후처리 verb="${verb.word}" parsing=${JSON.stringify(verb.parsing)} strongs="${verb.strongs}" sourceNote="${verb.sourceNote}"`,
+    );
+
+    // parsing이 없으면 빈 객체 생성
+    if (!verb.parsing) {
+      verb.parsing = { mood: '', tense: '', voice: '', personNumber: '', morphCode: '' };
     }
+
+    // morphCode 자동 생성: 파싱 필드가 있으면 BLB 형식으로 조합
+    if (!verb.parsing.morphCode && (verb.parsing.mood || verb.parsing.tense)) {
+      verb.parsing.morphCode = buildMorphCode(verb.parsing, verb.original);
+      console.log(`[AI] morphCode 자동 생성: ${verb.parsing.morphCode}`);
+    }
+
     // strongs를 sourceNote에서 추출 시도
     if (!verb.strongs && verb.sourceNote) {
       const strongsMatch = verb.sourceNote.match(/Strong's\s+([HG]\d+)/i);
       if (strongsMatch) verb.strongs = strongsMatch[1]!;
     }
-    // sourceNote가 없거나 불완전하면 자동 생성
-    if (verb.strongs || verb.parsing?.morphCode) {
-      const parts: string[] = [];
-      if (verb.strongs) parts.push(`Strong's ${verb.strongs}`);
-      if (verb.parsing?.morphCode) parts.push(`BLB Morphology ${verb.parsing.morphCode}`);
+
+    // sourceNote 자동 생성
+    const parts: string[] = [];
+    if (verb.strongs) parts.push(`Strong's ${verb.strongs}`);
+    if (verb.parsing.morphCode) parts.push(`BLB Morphology ${verb.parsing.morphCode}`);
+    if (parts.length > 0) {
       verb.sourceNote = `참고: ${parts.join(', ')}`;
     }
+
+    console.log(
+      `[AI] 후처리 결과 morphCode="${verb.parsing.morphCode}" strongs="${verb.strongs}" sourceNote="${verb.sourceNote}"`,
+    );
   }
 
   return {
