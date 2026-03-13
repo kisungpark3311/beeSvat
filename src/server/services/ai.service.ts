@@ -32,28 +32,42 @@ const aiResponseSchema = z.object({
   explanation: z.string(),
   mainVerbs: z.preprocess(
     (val) => {
+      let items: unknown[] = [];
+
       // AI가 객체로 반환할 경우 배열로 변환
       if (val && typeof val === 'object' && !Array.isArray(val)) {
         const obj = val as Record<string, unknown>;
-        // 숫자 키 객체 ({"0": {...}, "1": {...}}) → 배열
-        if (Object.keys(obj).every((k) => /^\d+$/.test(k))) {
-          return Object.values(obj);
+        if ('word' in obj || 'original' in obj) {
+          items = [obj];
+        } else {
+          // 내부에 배열이 있으면 추출, 아니면 values
+          const arrays = Object.values(obj).filter(Array.isArray);
+          items = arrays.length > 0 ? arrays.flat() : Object.values(obj);
         }
-        // 단계별 객체 (step1, step2 등) → 내부 배열 추출
-        const arrays = Object.values(obj).filter(Array.isArray);
-        if (arrays.length > 0) return arrays.flat();
-        // 단일 동사 객체 → 배열로 래핑
-        if ('word' in obj || 'original' in obj) return [obj];
-        return Object.values(obj);
+      } else if (Array.isArray(val)) {
+        items = val;
       }
-      return val;
+
+      // 유효한 동사 항목만 필터링 (word 또는 original이 있는 것)
+      const valid = items.filter(
+        (item) =>
+          item &&
+          typeof item === 'object' &&
+          (('word' in (item as Record<string, unknown>) &&
+            typeof (item as Record<string, unknown>).word === 'string') ||
+            ('original' in (item as Record<string, unknown>) &&
+              typeof (item as Record<string, unknown>).original === 'string')),
+      );
+
+      // 5개 초과 시 처음 5개만 사용
+      return valid.slice(0, 5);
     },
     z.array(
       z.object({
-        word: z.string(),
+        word: z.string().default(''),
         position: z.number().default(0),
-        meaning: z.string(),
-        original: z.string(),
+        meaning: z.string().default(''),
+        original: z.string().default(''),
         transliteration: z.string().optional(),
         strongs: z.string().optional(),
         parsing: z
